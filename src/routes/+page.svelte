@@ -1,156 +1,244 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import ScoreCard from "./score_card.svelte";
+  import WeaverPlot from "./weaver_plot.svelte";
 
-  let name = "";
-  let greetMsg = "";
+  let date: string;
+  $: child_dob_date = date && new Date(date)
+  let mother_circumference_in_cm = 0;
+  let father_circumference_in_cm = 0;
+  let child_head_circumference_in_cm = 0;
+  let child_age_in_months = 0;
+  let premature_conception_in_days = 0;
+  let premature_conception_in_weeks = 0;
+  let selected_gender = "";
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    greetMsg = await invoke("greet", { name });
+  let error_selected_gender = false;
+  let error_child_age_in_months = false;
+  let error_child_head_circumference_in_cm = false;
+  let error_mother_circumference_in_cm = false;
+  let error_father_circumference_in_cm = false;
+  let error_premature_conception_in_days = false;
+  let error_premature_conception_in_weeks = false;
+
+  let error = "";
+
+  let show_scores = false;
+  let show_corrected_scores = false;
+  let child_score = 0;
+  let corrected_child_score = 0;
+  let mother_score = 0;
+  let father_score = 0;
+
+  function process_form() {
+
+    let error = false;
+    if (selected_gender.length == 0) {
+      error_selected_gender = true;
+      error = true;
+    }
+
+    if (child_age_in_months <= 0) {
+      error_child_age_in_months = true;
+      error = true;
+    }
+      
+    if (child_head_circumference_in_cm <= 0) {
+      error_child_head_circumference_in_cm = true;
+      error = true;
+    }
+
+    if (mother_circumference_in_cm <= 0) {
+      error_mother_circumference_in_cm = true;
+      error = true;
+    }
+
+    if (father_circumference_in_cm <= 0) {
+      error_father_circumference_in_cm = true;
+      error = true;
+    }
+
+    if (premature_conception_in_days > 7 || premature_conception_in_days < 0) {
+      error_premature_conception_in_days = true;
+      error = true;
+    }
+
+    if (premature_conception_in_weeks > 52 || premature_conception_in_weeks < 0) {
+      error_premature_conception_in_weeks = true;
+      error = true;
+    }
+
+    if (error) {
+      return;
+    }
+
+
+    let gender_id = selected_gender == "male" ? 1 : 2;
+
+    invoke("process_form", {
+      childAgeMonths: child_age_in_months,
+      childHeadCircumferenceCm: child_head_circumference_in_cm,
+      motherCircumferenceCm: mother_circumference_in_cm,
+      fatherCircumferenceCm: father_circumference_in_cm,
+      prematureConceptionWeeks: premature_conception_in_weeks,
+      prematureConceptionDays: premature_conception_in_days,
+      gender: gender_id}
+    ).then((res: any) => {
+      console.log(res);
+      show_scores = true;
+      if (premature_conception_in_days > 0 || premature_conception_in_weeks > 0) {
+        show_corrected_scores = true;
+      }
+      child_score = res[3];
+      corrected_child_score = res[2];
+      mother_score = res[1];
+      father_score = res[0];
+    });
+
   }
+
+  function update_child_age_in_months() {
+    const child_dob = new Date(child_dob_date);
+    const today = new Date();
+    const months = (today.getFullYear() - child_dob.getFullYear()) * 12 + (today.getMonth() - child_dob.getMonth());
+    child_age_in_months = months;
+  }
+
 </script>
+<div class="flex flex-col justify-center">
+  <div class="card bg-neutral text-neutral-content place-self-center w-5/6 mt-3">
+    <div class="card-body items-center text-center">
+      <h2 class="card-title">Weaver Curve</h2>
 
-<div class="container">
-  <h1>Welcome to Tauri!</h1>
+      <div class="divider">Demographics</div>
+      <label class="form-control w-full max-w-xs">
+        <div class="label">
+          <span class="label-text">Sex Assigned at Birth</span>
+        </div>
+        <select class="select select-bordered {error_selected_gender ? 'select-error' : ''}" name="sex" bind:value={selected_gender}>
+          <option value="" disabled selected>Pick one</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+        {#if error_selected_gender}
+          <div class="label">
+            <span class="label-text-alt text-error">Please select a gender</span>
+          </div>
+        {/if}
+      </label>
 
-  <div class="row">
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://kit.svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
+      <div class="flex flex-row">
+
+        <label class="form-control w-1/2 max-w-xs">
+          <div class="label">
+            <span class="label-text">Child DOB</span>
+          </div>
+          <input type="date" class="input input-bordered {error_child_age_in_months ? 'input-error' : ''}" bind:value={date} on:input={update_child_age_in_months}/>
+          {#if error_child_age_in_months}
+            <div class="label">
+              <span class="label-text-alt text-error">Please enter a valid date</span>
+            </div>
+          {/if}
+        </label>
+
+        <div class="divider divider-horizontal ">OR</div>
+
+        <label class="form-control w-1/2 max-w-xs">
+          <div class="label">
+            <span class="label-text">Child Age</span>
+            <span class="label-text-alt">in months</span>
+          </div>
+          <input type="number" class="input input-bordered {error_child_age_in_months ? 'input-error' : ''}" bind:value={child_age_in_months}/>
+          {#if error_child_age_in_months}
+            <div class="label">
+              <span class="label-text-alt text-error">Please enter a valid age</span>
+            </div>
+           {/if}
+        </label>
+      </div>
+
+      <div class="divider">Head Circumference</div>
+
+      <div class="flex flex-row w-full justify-center">
+      
+        <label class="form-control w-1/4 max-w-xs">
+          <div class="label">
+            <span class="label-text">Child</span>
+            <span class="label-text-alt">in cm</span>
+          </div>
+          <input type="number" class="input input-bordered {error_child_head_circumference_in_cm ? 'input-error' : ''}" bind:value={child_head_circumference_in_cm}/>
+          {#if error_child_head_circumference_in_cm}
+            <div class="label">
+              <span class="label-text-alt text-error">Please enter a valid circumference</span>
+            </div>
+          {/if}
+        </label>
+
+        <label class="form-control w-1/4 max-w-xs mx-2">
+          <div class="label">
+            <span class="label-text">Mother</span>
+            <span class="label-text-alt">in cm</span>
+          </div>
+          <input type="number" class="input input-bordered {error_mother_circumference_in_cm ? 'input-error' : ''}" bind:value={mother_circumference_in_cm}/>
+          {#if error_mother_circumference_in_cm}
+            <div class="label">
+              <span class="label-text-alt text-error">Please enter a valid circumference</span>
+            </div>
+          {/if}
+        </label>
+
+        <label class="form-control w-1/4 max-w-xs">
+          <div class="label">
+            <span class="label-text">Father</span>
+            <span class="label-text-alt">in cm</span>
+          </div>
+          <input type="number" class="input input-bordered {error_father_circumference_in_cm ? 'input-error' : ''}" bind:value={father_circumference_in_cm}/>
+          {#if error_father_circumference_in_cm}
+            <div class="label">
+              <span class="label-text-alt text-error">Please enter a valid circumference</span>
+            </div>
+          {/if}
+        </label>
+      </div>
+
+      <div class="collapse collapse-arrow bg-base-200">
+        <input type="checkbox"/>
+        <div class="collapse-title text-xl font-medium">Premature Conception</div>
+        <div class="collapse-content">
+          <div class="flex flex-row w-full justify-center">
+            <label class="form-control w-1/4 max-w-xs">
+              <div class="label">
+                <span class="label-text-alt">in weeks</span>
+              </div>
+              <input type="number" class="input input-bordered {error_premature_conception_in_weeks ? 'input-error' : ''}" bind:value={premature_conception_in_weeks}/>
+              {#if error_premature_conception_in_weeks}
+                <div class="label">
+                  <span class="label-text-alt text-error">Please enter a valid age in weeks</span>
+                </div>
+              {/if}
+            </label>
+
+            <label class="form-control w-1/4 max-w-xs mx-2">
+              <div class="label">
+                <span class="label-text-alt">in days</span>
+              </div>
+              <input type="number" class="input input-bordered {error_premature_conception_in_days ? 'input-error' : ''}" bind:value={premature_conception_in_days}/>
+              {#if error_premature_conception_in_weeks}
+                <div class="label">
+                  <span class="label-text-alt text-error">Please enter a valid age in days</span>
+                </div>
+              {/if}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary mt-4" on:click={process_form}>Submit</button>
+        
+    </div>
   </div>
 
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
+  <ScoreCard show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score}/>
+  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score}/>
 
-  <form class="row" on:submit|preventDefault={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-
-  <p>{greetMsg}</p>
 </div>
-
-<style>
-  .logo.vite:hover {
-    filter: drop-shadow(0 0 2em #747bff);
-  }
-
-  .logo.svelte-kit:hover {
-    filter: drop-shadow(0 0 2em #ff3e00);
-  }
-
-  :root {
-    font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-    font-size: 16px;
-    line-height: 24px;
-    font-weight: 400;
-
-    color: #0f0f0f;
-    background-color: #f6f6f6;
-
-    font-synthesis: none;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    -webkit-text-size-adjust: 100%;
-  }
-
-  .container {
-    margin: 0;
-    padding-top: 10vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    text-align: center;
-  }
-
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: 0.75s;
-  }
-
-  .logo.tauri:hover {
-    filter: drop-shadow(0 0 2em #24c8db);
-  }
-
-  .row {
-    display: flex;
-    justify-content: center;
-  }
-
-  a {
-    font-weight: 500;
-    color: #646cff;
-    text-decoration: inherit;
-  }
-
-  a:hover {
-    color: #535bf2;
-  }
-
-  h1 {
-    text-align: center;
-  }
-
-  input,
-  button {
-    border-radius: 8px;
-    border: 1px solid transparent;
-    padding: 0.6em 1.2em;
-    font-size: 1em;
-    font-weight: 500;
-    font-family: inherit;
-    color: #0f0f0f;
-    background-color: #ffffff;
-    transition: border-color 0.25s;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  button {
-    cursor: pointer;
-  }
-
-  button:hover {
-    border-color: #396cd8;
-  }
-  button:active {
-    border-color: #396cd8;
-    background-color: #e8e8e8;
-  }
-
-  input,
-  button {
-    outline: none;
-  }
-
-  #greet-input {
-    margin-right: 5px;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      color: #f6f6f6;
-      background-color: #2f2f2f;
-    }
-
-    a:hover {
-      color: #24c8db;
-    }
-
-    input,
-    button {
-      color: #ffffff;
-      background-color: #0f0f0f98;
-    }
-    button:active {
-      background-color: #0f0f0f69;
-    }
-  }
-</style>
