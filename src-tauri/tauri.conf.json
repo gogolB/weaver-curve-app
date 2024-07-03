@@ -1,7 +1,7 @@
 {
   "productName": "weaver-curve-app",
-  "version": "0.0.0",
-  "identifier": "com.tauri.dev",
+  "version": "1.0.0",
+  "identifier": "com.enmed.dev",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
