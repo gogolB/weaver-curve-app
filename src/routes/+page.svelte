@@ -1,7 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import ScoreCard from "./score_card.svelte";
-  import WeaverPlot from "./weaver_plot.svelte";
+  import ScoreCard from "../components/score_card.svelte";
+  import WeaverPlot from "../components/weaver_plot.svelte";
 
   let date: string;
   $: child_dob_date = date && new Date(date)
