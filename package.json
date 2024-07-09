@@ -1,6 +1,6 @@
 {
   "name": "weaver-curve-app",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A software app designed to help medical providers run a Weaver Curve with Gestational Age correction",
   "type": "module",
   "scripts": {

@@ -4,7 +4,6 @@
   import WeaverPlot from "../components/weaver_plot.svelte";
 
   let date: string;
-  $: child_dob_date = date && new Date(date)
   let mother_circumference_in_cm = 0;
   let father_circumference_in_cm = 0;
   let child_head_circumference_in_cm = 0;
@@ -73,7 +72,7 @@
     }
 
 
-    let gender_id = selected_gender == "male" ? 1 : 2;
+    let gender_id = selected_gender == "male" ? 0 : 1;
 
     invoke("process_form", {
       childAgeMonths: child_age_in_months,
@@ -84,7 +83,6 @@
       prematureConceptionDays: premature_conception_in_days,
       gender: gender_id}
     ).then((res: any) => {
-      console.log(res);
       show_scores = true;
       if (premature_conception_in_days > 0 || premature_conception_in_weeks > 0) {
         show_corrected_scores = true;
@@ -97,10 +95,24 @@
 
   }
 
+  const dateOnlyRegex = /^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])))$/
+
+  function parseDateString(dateString: string) {
+    if (dateOnlyRegex.test(dateString)) {
+      const utcDate = new Date(dateString)
+      const localDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000)
+      return localDate  
+    }
+    return new Date(dateString)
+  }
+
   function update_child_age_in_months() {
-    const child_dob = new Date(child_dob_date);
-    const today = new Date();
-    const months = (today.getFullYear() - child_dob.getFullYear()) * 12 + (today.getMonth() - child_dob.getMonth());
+    const child_dob = parseDateString(date);
+    const today = new Date(new Date().toISOString());
+    let months = (today.getFullYear() - child_dob.getFullYear()) * 12 + (today.getMonth() - child_dob.getMonth());
+    if (today.getDate() - child_dob.getDate() < 0) {
+      months -= 1;
+    }
     child_age_in_months = months;
   }
 
@@ -203,7 +215,7 @@
 
       <div class="collapse collapse-arrow bg-base-200">
         <input type="checkbox"/>
-        <div class="collapse-title text-xl font-medium">Premature Conception</div>
+        <div class="collapse-title text-xl font-medium">Premature Birth</div>
         <div class="collapse-content">
           <div class="flex flex-row w-full justify-center">
             <label class="form-control w-1/4 max-w-xs">
@@ -238,7 +250,7 @@
     </div>
   </div>
 
-  <ScoreCard show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score}/>
+  <ScoreCard show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} child_age_in_months={child_age_in_months} gestiational_age_in_weeks={premature_conception_in_weeks}/>
   <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score}/>
 
 </div>
