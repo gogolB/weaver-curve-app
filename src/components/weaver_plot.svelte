@@ -118,7 +118,7 @@
                     <circle
                       cx={xScale(parental_average)}
                       cy={yScale(child_score)}
-                      r={3}
+                      r={5}
                       style="fill: {is_abnormal ? 'red' : 'green'}"
                     />
                   </g>
@@ -126,10 +126,10 @@
                   {#if show_corrected_score}
                     <g>
                       <rect
-                        x={xScale(parental_average)}
-                        y={yScale(correct_score)}
-                        width=10
-                        height=10
+                        x={xScale(parental_average) - 10}
+                        y={yScale(correct_score) - 10}
+                        width=20
+                        height=20
                         style="fill: {is_abnormal_corrected ? "red" : "green"}"
                       />
                     </g>
@@ -202,7 +202,7 @@
                     cx={xScale(-5) + 22}
                     cy={yScale(5) + 65}
                     r={3}
-                    style="fill: {is_abnormal_corrected ? "red" : "green"}"
+                    style="fill: {is_abnormal ? "red" : "green"}"
                   />
                   <text x={xScale(-5) + 35} y={yScale(5) + 70} fill="white" text-anchor="start">Child Score</text>
                 </g>

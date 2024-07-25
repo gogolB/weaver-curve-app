@@ -26,9 +26,9 @@
               <div class="stats shadow">
                   {#if show_corrected_score}
                   <div class="stat place-items-center">
-                    <div class="stat-title">Child</div>
+                    <div class="stat-title">Child (corrected)</div>
                     <div class="stat-value {is_abnormal_corrected ? 'text-error' : 'text-success'}">{correct_score.toFixed(2)}</div>
-                    <div class="stat-desc {is_abnormal ? 'text-error' : 'text-success'}">Corrected score, original score: {child_score.toFixed(2)}</div>
+                    <div class="stat-desc {is_abnormal ? 'text-error' : 'text-success'}">Original score: {child_score.toFixed(2)}</div>
                   </div>
                   {:else}
                   <div class="stat place-items-center">
