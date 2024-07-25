@@ -22,7 +22,7 @@
         <h2 class="card-title">Weaver Scores</h2>
         <div class="flex flex-col justify-center">
           {#if show_score}
-            <div class="flex flex-row">
+            <div class="flex flex-row justify-center">
               <div class="stats shadow">
                   {#if show_corrected_score}
                   <div class="stat place-items-center">
@@ -60,7 +60,7 @@
           {/if}
           {#if is_invalid}
           <div class="flex flex-row">
-            <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4" role="alert">
+            <div class="bg-orange-100 border-l-4 border-orange-500 text-orange-700 p-4 rounded-box mt-3 border-t-4" role="alert">
               <p class="font-bold">Warning</p>
               <p>Results may not be accurate for current premature age.</p>
             </div>
