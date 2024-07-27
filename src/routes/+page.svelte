@@ -29,6 +29,11 @@
   let mother_score = 0;
   let father_score = 0;
 
+	$: outerWidth = 0
+	$: innerWidth = 0
+	$: outerHeight = 0
+	$: innerHeight = 0
+
   function process_form() {
 
     let error = false;
@@ -131,6 +136,7 @@
   }
 
 </script>
+<svelte:window bind:innerWidth bind:outerWidth bind:innerHeight bind:outerHeight />
 <div class="flex flex-col justify-center">
   <div class="card bg-neutral text-neutral-content place-self-center w-5/6 mt-3">
     <div class="card-body items-center text-center">
@@ -264,7 +270,8 @@
     </div>
   </div>
 
+
   <ScoreCard show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} child_age_in_months={child_age_in_months} gestiational_age_in_weeks={premature_conception_in_weeks}/>
-  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score}/>
+  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} chartWidth={innerWidth * 0.8 } chartHeight={innerWidth * 0.8 * 0.78}/>
 
 </div>

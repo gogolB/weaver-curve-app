@@ -2,7 +2,6 @@
 
     import * as d3 from "d3";
     import { scaleLinear } from "d3-scale";
-    import Tick from "./Tick.svelte";
 
 
     export let show_score = true;
@@ -21,8 +20,8 @@
         bottom: 50,
     };
 
-    const xScale = scaleLinear().domain([-5, 5]).range([paddings.left, chartWidth - paddings.right]);
-    const yScale = scaleLinear().domain([-5, 5]).range([chartHeight - paddings.bottom, paddings.top]);
+    let xScale = scaleLinear().domain([-5, 5]).range([paddings.left, chartWidth - paddings.right]);
+    let yScale = scaleLinear().domain([5, -5]).range([paddings.top, chartHeight - paddings.bottom]);
 
     const yGrid = yScale.ticks(10)
     const xGrid = xScale.ticks(10)
@@ -45,6 +44,8 @@
 
     $: d3.select(gy).call(d3.axisLeft(yScale));
     $: d3.select(gx).call(d3.axisBottom(xScale));
+    $: xScale = scaleLinear().domain([-5, 5]).range([paddings.left, chartWidth - paddings.right]);
+    $: yScale = scaleLinear().domain([5, -5]).range([paddings.top, chartHeight - paddings.bottom]);
 
 </script>
 
@@ -53,25 +54,6 @@
         <h2 class="card-title">Weaver Plot</h2>
         {#if show_score}
             <svg width={chartWidth} height={chartHeight}>
-                <g>
-                    <line
-                    x1={paddings.left}
-                    x2={chartWidth - paddings.right}
-                    y1={chartHeight - paddings.bottom}
-                    y2={chartHeight - paddings.bottom}
-                    stroke="black"
-                    stroke-width="2"
-                    />
-                    <line
-                    x1={paddings.left}
-                    x2={paddings.left}
-                    y1={paddings.top}
-                    y2={chartHeight - paddings.bottom}
-                    stroke="black"
-                    stroke-width="2"
-                    />
-                </g>
-
                 <g>
                     {#each {length: 10} as _, x}
                         <line
@@ -105,14 +87,14 @@
                     {/each}
                   </g>
 
-                  <g bind:this={gx} transform="translate(0,{chartHeight - paddings.bottom})"></g>
+                  <g bind:this={gx} transform="translate(0,{chartHeight - 25 < yScale(-5) ? chartHeight-25 : yScale(-5)})"></g>
                   <g>
-                    <text x={chartWidth / 2} y={chartHeight - 15} fill="white" text-anchor="middle">Standard Score (Parental Average)</text>
+                    <text x={xScale(0)} y={chartHeight - 15 < yScale(-5) - 40 ? chartHeight-15 : yScale(-5) + 40} fill="white" text-anchor="middle">Standard Score (Parental Average)</text>
                   </g>
                   
                   <g bind:this={gy} transform="translate({paddings.left},0)"></g>
                   <g>
-                    <text x={-chartHeight / 2} y={paddings.left / 2} transform="rotate(-90)" fill="white" text-anchor="middle"> Standard Score (Child)</text>
+                    <text x={-yScale(0)} y={paddings.left / 2} transform="rotate(-90)" fill="white" text-anchor="middle"> Standard Score (Child)</text>
                   </g>
                   <g>
                     <circle
@@ -218,15 +200,6 @@
                     <text x={xScale(-5) + 35} y={yScale(5) + 90} fill="white" text-anchor="start">Child Score (GA Corrected)</text>
                   </g>
                 {/if}
-                <g>
-                  <line>
-
-                  </line>
-                </g>
-
-
-
-
             </svg>
         {:else}
             <div class="skeleton h-96 w-96"></div>
