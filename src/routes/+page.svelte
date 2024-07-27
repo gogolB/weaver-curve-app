@@ -116,6 +116,20 @@
     child_age_in_months = months;
   }
 
+  function reset_form() {
+    show_scores = false;
+    show_corrected_scores = false;
+    selected_gender = "";
+    error_selected_gender = false;
+    error = "";
+    child_age_in_months = 0;
+    child_head_circumference_in_cm = 0;
+    mother_circumference_in_cm = 0;
+    father_circumference_in_cm = 0;
+    premature_conception_in_weeks = 0;
+    premature_conception_in_days = 0;
+  }
+
 </script>
 <div class="flex flex-col justify-center">
   <div class="card bg-neutral text-neutral-content place-self-center w-5/6 mt-3">
@@ -245,7 +259,7 @@
         </div>
       </div>
 
-      <button class="btn btn-primary mt-4" on:click={process_form}>Submit</button>
+      <button class="btn btn-primary mt-4" on:click={process_form}>Submit</button> <button class="btn btn-secondary mt-4" on:click={reset_form}>Reset</button>
         
     </div>
   </div>
