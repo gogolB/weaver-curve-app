@@ -2,7 +2,8 @@
 
     import * as d3 from "d3";
     import { scaleLinear } from "d3-scale";
-
+    import { save } from '@tauri-apps/plugin-dialog';
+    import { invoke } from "@tauri-apps/api/core";
 
     export let show_score = true;
     export let show_corrected_score = false;
@@ -10,6 +11,15 @@
     export let correct_score;
     export let mother_score;
     export let father_score;
+
+    export let child_age_in_months = 0;
+    export let mother_circumference_in_cm = 0;
+    export let father_circumference_in_cm = 0;
+    export let child_head_circumference_in_cm = 0;
+    export let premature_conception_in_days = 0;
+    export let premature_conception_in_weeks = 0;
+    export let gender = 0;
+
 
     export let chartWidth = 700;
     export let chartHeight = 700;
@@ -46,6 +56,27 @@
     $: d3.select(gx).call(d3.axisBottom(xScale));
     $: xScale = scaleLinear().domain([-5, 5]).range([paddings.left, chartWidth - paddings.right]);
     $: yScale = scaleLinear().domain([5, -5]).range([paddings.top, chartHeight - paddings.bottom]);
+
+    async function print_to_pdf() {
+      const path = await save({
+        filters: [
+          {
+            name: 'My Filter',
+            extensions: ['pdf'],
+          },
+        ],
+      });
+      invoke("make_pdf", {
+        filePath: path,
+        childAgeMonths: child_age_in_months,
+        childHeadCircumferenceCm: child_head_circumference_in_cm,
+        motherCircumferenceCm: mother_circumference_in_cm,
+        fatherCircumferenceCm: father_circumference_in_cm,
+        prematureConceptionWeeks: premature_conception_in_weeks,
+        prematureConceptionDays: premature_conception_in_days,
+        gender: gender
+      })
+    }
 
 </script>
 
@@ -201,6 +232,7 @@
                   </g>
                 {/if}
             </svg>
+          <button class="btn btn-primary mt-4" on:click={print_to_pdf}>Print</button>
         {:else}
             <div class="skeleton h-96 w-96"></div>
         {/if}

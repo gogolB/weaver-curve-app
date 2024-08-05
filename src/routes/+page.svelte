@@ -29,13 +29,15 @@
   let mother_score = 0;
   let father_score = 0;
 
+  $: gender_id = selected_gender == "male" ? 0 : 1
+
 	$: outerWidth = 0
 	$: innerWidth = 0
 	$: outerHeight = 0
 	$: innerHeight = 0
 
   function process_form() {
-
+    console.log("Processing form");
     let error = false;
     if (selected_gender.length == 0) {
       error_selected_gender = true;
@@ -79,7 +81,9 @@
 
     let gender_id = selected_gender == "male" ? 0 : 1;
 
-    invoke("process_form", {
+    console.log("Processing form");
+
+    invoke("calculate_scores", {
       childAgeMonths: child_age_in_months,
       childHeadCircumferenceCm: child_head_circumference_in_cm,
       motherCircumferenceCm: mother_circumference_in_cm,
@@ -271,7 +275,6 @@
   </div>
 
 
-  <ScoreCard show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} child_age_in_months={child_age_in_months} gestiational_age_in_weeks={premature_conception_in_weeks}/>
-  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} chartWidth={innerWidth * 0.8 } chartHeight={innerWidth * 0.8 * 0.78}/>
-
+  <ScoreCard  show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} child_age_in_months={child_age_in_months} gestiational_age_in_weeks={premature_conception_in_weeks}/>
+  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} chartWidth={innerWidth * 0.8 } chartHeight={innerWidth * 0.8 * 0.78} child_age_in_months={child_age_in_months} premature_conception_in_weeks={premature_conception_in_weeks} premature_conception_in_days={premature_conception_in_days} gender={gender_id} mother_circumference_in_cm={mother_circumference_in_cm} father_circumference_in_cm={father_circumference_in_cm} child_head_circumference_in_cm={child_head_circumference_in_cm} />
 </div>
