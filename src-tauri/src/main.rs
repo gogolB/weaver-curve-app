@@ -273,9 +273,9 @@ fn make_pdf(
 
     let mut renderer: ImageRenderer = ImageRenderer::new(1000, 800);
     let data = renderer.render_format(ImageFormat::Png, &chart).unwrap();
-    let mut Cursor = Cursor::new(data);
+    let mut cursor = Cursor::new(data);
 
-    let decoder = image_crate::codecs::png::PngDecoder::new(&mut Cursor).unwrap();
+    let decoder = image_crate::codecs::png::PngDecoder::new(&mut cursor).unwrap();
     let image = Image::try_from(decoder).unwrap();
     image.add_to_layer(
         current_layer.clone(),
