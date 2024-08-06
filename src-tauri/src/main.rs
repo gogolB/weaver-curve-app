@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use charming::component::Grid;
 use printpdf::*;
 use std::{fs::File, io::Cursor};
 use std::io::BufWriter;
@@ -225,6 +226,7 @@ fn make_pdf(
         .y_axis(
             Axis::new().type_(AxisType::Value).name("Standard Score (Child)").position("left").name_location(NameLocation::Middle).name_rotation(-90.0),
         )
+        .grid(Grid::new().background_color("white"))
         .series(
             Line::new()
                 .name("Average")
@@ -271,27 +273,32 @@ fn make_pdf(
         );
     }
 
-    let mut renderer: ImageRenderer = ImageRenderer::new(1000, 800);
-    let data = renderer.render_format(ImageFormat::Png, &chart).unwrap();
+    let mut renderer: ImageRenderer = ImageRenderer::new(1000, 800).theme(charming::theme::Theme::Chalk);
+    let data = renderer.render_format(ImageFormat::Bmp, &chart).unwrap();
     let mut cursor = Cursor::new(data);
 
-    let decoder = image_crate::codecs::png::PngDecoder::new(&mut cursor).unwrap();
+    let decoder = image_crate::codecs::bmp::BmpDecoder::new(&mut cursor).unwrap();
     let image = Image::try_from(decoder).unwrap();
+
+    let rotation_center_x = Px((image.image.width.0 as f32 / 2.0) as usize);
+    let rotation_center_y = Px((image.image.height.0 as f32 / 2.0) as usize);
+
+    // layer,
     image.add_to_layer(
         current_layer.clone(),
         ImageTransform {
-            translate_x: Some(Mm(10.0)),
-            translate_y: Some(Mm(100.0)),
+            rotate: Some(ImageRotation {
+                angle_ccw_degrees: 0.0,
+                rotation_center_x,
+                rotation_center_y,
+            }),
+            translate_x: Some(Mm(50.0)),
+            translate_y: Some(Mm(50.0)),
             ..Default::default()
         },
     );
-
-
-    // Save the PDF
-    doc.save(&mut BufWriter::new(
-        File::create(path).unwrap(),
-    ))
-    .unwrap();
+    
+    doc.save(&mut BufWriter::new(File::create(file_path).unwrap())).unwrap();
 
     0.0
 }
