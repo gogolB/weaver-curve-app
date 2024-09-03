@@ -1,15 +1,22 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use charming::component::Grid;
-use printpdf::*;
-use std::{fs::File, io::Cursor};
+use plotly::common::Marker;
+use std::fs::File;
 use std::io::BufWriter;
 use std::path::Path;
 use tauri::Manager;
-use charming::{
-    component::{Axis, Legend}, element::{AxisType, ItemStyle, NameLocation}, series::{Line, Scatter}, Chart, ImageFormat, ImageRenderer
+use plotly::common::{
+    DashType,Line, Mode,
 };
+use plotly::layout::Layout;
+use plotly::color::NamedColor;
+use plotly::{Plot, Scatter};
+
+use tempfile::NamedTempFile;
+
+use pdfium_render::prelude::*;
+use pdfium_render::pdf::PdfColor;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -136,23 +143,37 @@ fn make_pdf(
     let path = Path::new(&file_path);
     let file_name = path.file_name().unwrap().to_str().unwrap();
 
+    let pdfium = Pdfium::default();
+
     const PAGE_WIDTH:f32 = 215.9;
     const PAGE_HEIGHT:f32 = 279.4;
 
     // Create the pdf file.
-    let (doc, page1, layer1) = PdfDocument::new(file_name, Mm(PAGE_WIDTH), Mm(PAGE_HEIGHT), "Layer 1");
-    let current_layer = doc.get_page(page1).get_layer(layer1);
+    let mut document = pdfium.create_new_pdf().unwrap();
+    let mut page = document
+        .pages_mut()
+        .create_page_at_start(PdfPagePaperSize::a4()).unwrap();
 
-    let font = doc.add_external_font(font_file).unwrap();
+    let font = document.fonts_mut().courier_bold();
+
+    let base_font_size = 10.0;
 
     // Write the title
     let title = "Weaver Curve";
-    current_layer.use_text(title, 48.0, Mm(10.0), Mm(250.0), &font);
+
+
+    let mut object = PdfPageTextObject::new(
+        &document,
+        title,
+        font,
+        PdfPoints::new(base_font_size + 64.0),
+    ).unwrap();
+
+    object.set_fill_color(PdfColor::BLACK).unwrap();
+    object.set_blend_mode(PdfPageObjectBlendMode::Multiply).unwrap();
 
     // Write the demographic data
     let demographics_text = "Demographics";
-    current_layer.use_text(demographics_text, 24.0, Mm(10.0), Mm(240.0), &font);
-
     let corrected_age: f32 = get_corrected_age(
         child_age_months,
         premature_conception_weeks,
@@ -214,71 +235,62 @@ fn make_pdf(
     let parental_average_text = format!("Parental Average: {:.2}", parental_average);
     current_layer.use_text(parental_average_text, 14.0, Mm(130.0), Mm(150.0), &font);
 
-    let color_baseline = if is_normal { "green" } else { "red" };
-    let color_corrected = if is_normal_corrected { "green" } else { "red" };
+    let color_baseline = if is_normal { NamedColor::Green } else { NamedColor::Red };
+    let color_corrected = if is_normal_corrected { NamedColor::Green } else { NamedColor::Red };
     
     // Generate the Graph
-    let mut chart: Chart = Chart::new()
-        .legend(Legend::new().top("top"))
-        .x_axis(
-            Axis::new().type_(AxisType::Value).name("Standard Score (Parental Average)").position("bottom").name_location(NameLocation::Middle),
-        )
-        .y_axis(
-            Axis::new().type_(AxisType::Value).name("Standard Score (Child)").position("left").name_location(NameLocation::Middle).name_rotation(-90.0),
-        )
-        .grid(Grid::new().background_color("white"))
-        .series(
-            Line::new()
-                .name("Average")
-                .item_style(ItemStyle::new().color("blue"))
-                .data(vec![
-                    vec![-5.0 as f64, average_y1], 
-                    vec![5.0 as f64, average_y2]
-                ])
-        )
-        .series(
-            Line::new()
-                .name("+2 SD")
-                .item_style(ItemStyle::new().color("orange"))
-                .data(vec![
-                    vec![-5.0, average_y1 + 2.0],
-                    vec![5.0, average_y2 + 2.0],
-                ])
-        )
-        .series(
-            Line::new()
-                .name("-2 SD")
-                .item_style(ItemStyle::new().color("orange"))
-                .data(vec![
-                    vec![-5.0, average_y1 - 2.0],
-                    vec![5.0, average_y2 - 2.0],
-                ])
-        )
-        .series(
-            Scatter::new()
-                .name("Child Score")
-                .item_style(ItemStyle::new().color(color_baseline))
-                .data(vec![
-                    vec![parental_average, child_score],
-                ])
-        );
-    if premature_conception_weeks > 0 || premature_conception_days > 0 {
-        chart = chart.series(
-            Scatter::new()
-                .name("Corrected Child Score")
-                .item_style(ItemStyle::new().color(color_corrected))
-                .data(vec![
-                    vec![parental_average, corrected_child_score],
-                ])  
-        );
+    let mut plot = Plot::new();
+    let layout = Layout::new().title("Weaver Curve");
+    let normal_trace = Scatter::new(vec![parental_average], vec![child_score])
+        .name("Child Score")
+        .marker(Marker::new().color(color_baseline));
+    plot.add_trace(normal_trace);
+    
+    if (premature_conception_weeks > 0 ) || (premature_conception_days > 0) {
+        let corrected_trace = Scatter::new(vec![parental_average], vec![corrected_child_score])
+            .name("Child Score (Corrected)")
+            .marker(Marker::new().color(color_corrected));
+        plot.add_trace(corrected_trace);
     }
 
-    let mut renderer: ImageRenderer = ImageRenderer::new(1000, 800).theme(charming::theme::Theme::Chalk);
-    let data = renderer.render_format(ImageFormat::Bmp, &chart).unwrap();
-    let mut cursor = Cursor::new(data);
-
-    let decoder = image_crate::codecs::bmp::BmpDecoder::new(&mut cursor).unwrap();
-    let image = Image::try_from(decoder).unwrap();
+    let avg_trace = Scatter::new(vec![-5.0, 5.0], vec![average_y1, average_y2])
+        .name("Parental Average")
+        .mode(Mode::Lines)
+        .line(Line::new().color(NamedColor::Blue));
+    plot.add_trace(avg_trace);
+    let sd_2m_trace = Scatter::new(vec![-5.0, 5.0], vec![average_y1 - 2.0, average_y2 - 2.0])
+        .name("- 2 SD")
+        .mode(Mode::Lines)
+        .line(Line::new().color(NamedColor::Orange).dash(DashType::Dash));
+    plot.add_trace(sd_2m_trace);
+    let sd_2p_trace = Scatter::new(vec![-5.0, 5.0], vec![average_y1 + 2.0, average_y2 + 2.0])
+        .name("+ 2 SD")
+        .mode(Mode::Lines)
+        .line(Line::new().color(NamedColor::Orange).dash(DashType::Dash));
+    plot.add_trace(sd_2p_trace);
+    plot.set_layout(layout);
+    
+    let file = NamedTempFile::new().unwrap();
+    let path = file.into_temp_path();
+    let image_file_path = path.to_str().unwrap();
+    plot.write_image(image_file_path, plotly::ImageFormat::PNG, 1024, 720, 1.0);
+    let written_image = format!("{image_file_path}.png");
+    //println!("Generated graph: {}", written_image.clone());
+    let mut image_file = File::open(written_image.clone()).unwrap();
+    let decoder = match image_crate::codecs::png::PngDecoder::new(&mut image_file){
+        Ok(decoder) => decoder,
+        Err(error) => {
+            println!("Error decoding image: {:?}", error);
+            return 0.0;
+        }
+    };
+    let image = match Image::try_from(decoder){
+        Ok(image) => image,
+        Err(error) => {
+            println!("Error decoding image: {:?}", error);
+            return 0.0;
+        }
+    };
 
     let rotation_center_x = Px((image.image.width.0 as f32 / 2.0) as usize);
     let rotation_center_y = Px((image.image.height.0 as f32 / 2.0) as usize);
@@ -300,6 +312,9 @@ fn make_pdf(
     
     doc.save(&mut BufWriter::new(File::create(file_path).unwrap())).unwrap();
 
+    // Attempt to remove the temporary files
+    path.close().unwrap();
+    let _ = std::fs::remove_file(written_image).unwrap();
     0.0
 }
 
