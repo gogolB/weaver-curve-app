@@ -19,4 +19,5 @@ interp = "1.0.3"
 printpdf = { version = "0.7.0", features = ["embedded_images"] }
 tauri-plugin-dialog = "2.0.0-rc.0"
 charming = { version = "0.3.1", features = ["ssr"] }
+plotly = { version = "0.9.0", features = ["kaleido"] }
 
