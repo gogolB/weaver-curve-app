@@ -6,6 +6,7 @@ use typst::foundations::{Bytes, Dict, IntoValue, Smart};
 use typst::text::Font;
 use typst_as_lib::TypstTemplate;
 use std::fs::{self};
+use std::vec;
 use tauri::Manager;
 use plotly::common::{
     DashType,Line, Mode,
@@ -128,6 +129,8 @@ fn make_pdf(
     premature_conception_weeks: u32,
     premature_conception_days: u32,
     gender: u32,
+    app_version: &str,
+    child_dob: &str,
 ) -> f64{
     // Load the font file asset.
     let template_path = handle
@@ -139,16 +142,22 @@ fn make_pdf(
         .unwrap();
     
     let template = fs::read_to_string(template_path).unwrap();
-    let font_path = handle
+
+    let font_files = vec!["Roboto-Black.ttf", "Roboto-BlackItalic.ttf", "Roboto-Bold.ttf", "Roboto-BoldItalic.ttf", "Roboto-Italic.ttf", "Roboto-Regular.ttf"];
+    let mut fonts = Vec::new();
+    for font_file in font_files {
+        let font_path = handle
         .path()
         .resolve(
-            "resources/fonts/texgyrecursor-regular.otf",
+            format!("resources/fonts/Roboto/{}", font_file),
             tauri::path::BaseDirectory::Resource,
         )
         .unwrap();
-    let font_data = fs::read(font_path).unwrap();
-    let font_data = Bytes::from(font_data);
-    let font = Font::new(font_data, 0).unwrap();
+        let font_data = fs::read(font_path).unwrap();
+        let font_data = Bytes::from(font_data);
+        let font = Font::new(font_data, 0).unwrap();
+        fonts.push(font);
+    }
 
     let corrected_age: f32 = get_corrected_age(
         child_age_months,
@@ -224,18 +233,20 @@ fn make_pdf(
         premature_weeks: Some(premature_conception_weeks),
         premature_days: Some(premature_conception_days),
         corrected_age: corrected_age.to_string(),
-        child_score: child_score.to_string(),
-        corrected_child_score: corrected_child_score.to_string(),
-        father_score: dad_score.to_string(),
-        mother_score: mom_score.to_string(),
-        parental_average: parental_average.to_string(),
+        child_score: format!("{:.2}", child_score),
+        corrected_child_score: format!("{:.2}", corrected_child_score),
+        father_score: format!("{:.2}", dad_score),
+        mother_score: format!("{:.2}", mom_score),
+        parental_average: format!("{:.2}", parental_average),
+        version: app_version.to_string(),
+        dob: child_dob.to_string(),
     };
 
     let image_bytes: Vec<u8> = fs::read(written_image.clone()).unwrap();
 
     let content = Content { v: c };
 
-    let template = TypstTemplate::new(vec![font], template)
+    let template = TypstTemplate::new(fonts, template)
         .with_static_file_resolver([("./images/graph.png", image_bytes)]);
     let mut tracer = Tracer::new();
 
@@ -288,4 +299,6 @@ struct ContentData {
     father_score: String,
     mother_score: String,
     parental_average: String,
+    version: String,
+    dob: String,
 }

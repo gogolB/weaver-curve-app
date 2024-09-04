@@ -1,6 +1,6 @@
 {
   "productName": "weaver-curve-app",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "identifier": "com.enmed.dev",
   "build": {
     "beforeDevCommand": "npm run dev",

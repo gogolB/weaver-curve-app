@@ -4,6 +4,7 @@
     import { scaleLinear } from "d3-scale";
     import { save } from '@tauri-apps/plugin-dialog';
     import { invoke } from "@tauri-apps/api/core";
+    import { getVersion } from '@tauri-apps/api/app';
 
     export let show_score = true;
     export let show_corrected_score = false;
@@ -11,6 +12,8 @@
     export let correct_score;
     export let mother_score;
     export let father_score;
+    // @ts-ignore
+    export let child_dob;
 
     export let child_age_in_months = 0;
     export let mother_circumference_in_cm = 0;
@@ -66,6 +69,7 @@
           },
         ],
       });
+      const appVersion = await getVersion();
       invoke("make_pdf", {
         filePath: path,
         childAgeMonths: child_age_in_months,
@@ -74,7 +78,10 @@
         fatherCircumferenceCm: father_circumference_in_cm,
         prematureConceptionWeeks: premature_conception_in_weeks,
         prematureConceptionDays: premature_conception_in_days,
-        gender: gender
+        gender: gender,
+        childDob: child_dob,
+        appVersion: appVersion
+        
       })
     }
 
