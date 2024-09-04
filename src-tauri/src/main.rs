@@ -2,9 +2,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use plotly::common::Marker;
-use std::fs::File;
-use std::io::BufWriter;
-use std::path::Path;
+use typst::eval::Tracer;
+use typst::foundations::{Bytes, Dict, IntoValue, Smart};
+use typst::text::Font;
+use typst_as_lib::TypstTemplate;
+use std::fs::{self};
 use tauri::Manager;
 use plotly::common::{
     DashType,Line, Mode,
@@ -14,9 +16,7 @@ use plotly::color::NamedColor;
 use plotly::{Plot, Scatter};
 
 use tempfile::NamedTempFile;
-
-use pdfium_render::prelude::*;
-use pdfium_render::pdf::PdfColor;
+use derive_typst_intoval::{IntoValue, IntoDict};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -130,79 +130,31 @@ fn make_pdf(
     gender: u32,
 ) -> f64{
     // Load the font file asset.
-    let font_path = handle
+    let template_path = handle
         .path()
         .resolve(
-            "resources/Roboto/Roboto-Regular.ttf",
+            "resources/templates/template.typ",
             tauri::path::BaseDirectory::Resource,
         )
         .unwrap();
-    let font_file = File::open(&font_path).unwrap();
+    
+    let template = fs::read_to_string(template_path).unwrap();
+    let font_path = handle
+        .path()
+        .resolve(
+            "resources/fonts/texgyrecursor-regular.otf",
+            tauri::path::BaseDirectory::Resource,
+        )
+        .unwrap();
+    let font_data = fs::read(font_path).unwrap();
+    let font_data = Bytes::from(font_data);
+    let font = Font::new(font_data, 0).unwrap();
 
-    // Get the file name from the path.
-    let path = Path::new(&file_path);
-    let file_name = path.file_name().unwrap().to_str().unwrap();
-
-    let pdfium = Pdfium::default();
-
-    const PAGE_WIDTH:f32 = 215.9;
-    const PAGE_HEIGHT:f32 = 279.4;
-
-    // Create the pdf file.
-    let mut document = pdfium.create_new_pdf().unwrap();
-    let mut page = document
-        .pages_mut()
-        .create_page_at_start(PdfPagePaperSize::a4()).unwrap();
-
-    let font = document.fonts_mut().courier_bold();
-
-    let base_font_size = 10.0;
-
-    // Write the title
-    let title = "Weaver Curve";
-
-
-    let mut object = PdfPageTextObject::new(
-        &document,
-        title,
-        font,
-        PdfPoints::new(base_font_size + 64.0),
-    ).unwrap();
-
-    object.set_fill_color(PdfColor::BLACK).unwrap();
-    object.set_blend_mode(PdfPageObjectBlendMode::Multiply).unwrap();
-
-    // Write the demographic data
-    let demographics_text = "Demographics";
     let corrected_age: f32 = get_corrected_age(
         child_age_months,
         premature_conception_weeks,
         premature_conception_days,
     );
-
-    let age_text = format!("Age: {} months", child_age_months);
-    current_layer.use_text(age_text, 14.0, Mm(10.0), Mm(230.0), &font);
-
-    if (premature_conception_weeks > 0) || (premature_conception_days > 0) {
-        let pc_text = format!("Premature Conception: {} weeks {} days", premature_conception_weeks, premature_conception_days);
-        current_layer.use_text(pc_text, 14.0, Mm(100.0), Mm(230.0), &font);
-        let pc_text = format!("Premature Conception Corrected Age: {} months", corrected_age);
-        current_layer.use_text(pc_text, 14.0, Mm(100.0), Mm(220.0), &font);
-    }
-
-    // Write the gender data
-    let gender_text = format!("Gender: {}", if gender == 0 {"Male"} else {"Female"});
-    current_layer.use_text(gender_text, 14.0, Mm(10.0), Mm(220.0), &font);
-
-    // Write the head circumference data
-    let head_circumference_text = "Head Circumference";
-    current_layer.use_text(head_circumference_text, 24.0, Mm(10.0), Mm(210.0), &font);
-    let head_circumference_text = format!("Head Circumference: {} cm", child_head_circumference_cm);
-    current_layer.use_text(head_circumference_text, 14.0, Mm(10.0), Mm(200.0), &font);
-    let mother_circumference_text = format!("Mother's Circumference: {} cm", mother_circumference_cm);
-    current_layer.use_text(mother_circumference_text, 14.0, Mm(10.0), Mm(190.0), &font);
-    let father_circumference_text = format!("Father's Circumference: {} cm", father_circumference_cm);
-    current_layer.use_text(father_circumference_text, 14.0, Mm(10.0), Mm(180.0), &font);
 
     // Write the results
     let (dad_score, mom_score, child_score, corrected_child_score) = calculate_scores(child_age_months, child_head_circumference_cm, mother_circumference_cm, father_circumference_cm, premature_conception_weeks, premature_conception_days, gender);
@@ -218,22 +170,6 @@ fn make_pdf(
     let parent_avg_score = INTERCEPT + SLOPE * parental_average;
     let is_normal = child_score < parent_avg_score + (2.0 as f64) && child_score > (parent_avg_score - 2.0 as f64);
     let is_normal_corrected = corrected_child_score <  parent_avg_score + (2.0 as f64) && corrected_child_score > parent_avg_score - (2.0 as f64);
-    
-    let score_test = "Scores";
-    current_layer.use_text(score_test, 24.0, Mm(10.0), Mm(170.0), &font);
-    let child_score_text = format!("Child Score: {:.2}", child_score);
-    current_layer.use_text(child_score_text, 14.0, Mm(10.0), Mm(160.0), &font);
-    if (premature_conception_weeks > 0) || (premature_conception_days > 0) {
-        let corrected_child_score_text = format!("Corrected Child Score: {:.2}", corrected_child_score);
-        current_layer.use_text(corrected_child_score_text, 14.0, Mm(100.0), Mm(160.0), &font);
-    }
-    let dad_score_text = format!("Dad Score: {:.2}", dad_score);
-    current_layer.use_text(dad_score_text, 14.0, Mm(10.0), Mm(150.0), &font);
-    let mom_score_text = format!("Mom Score: {:.2}", mom_score);
-    current_layer.use_text(mom_score_text, 14.0, Mm(70.0), Mm(150.0), &font);
-    let parental_average = (dad_score + mom_score) / 2.0;
-    let parental_average_text = format!("Parental Average: {:.2}", parental_average);
-    current_layer.use_text(parental_average_text, 14.0, Mm(130.0), Mm(150.0), &font);
 
     let color_baseline = if is_normal { NamedColor::Green } else { NamedColor::Red };
     let color_corrected = if is_normal_corrected { NamedColor::Green } else { NamedColor::Red };
@@ -275,42 +211,39 @@ fn make_pdf(
     let image_file_path = path.to_str().unwrap();
     plot.write_image(image_file_path, plotly::ImageFormat::PNG, 1024, 720, 1.0);
     let written_image = format!("{image_file_path}.png");
-    //println!("Generated graph: {}", written_image.clone());
-    let mut image_file = File::open(written_image.clone()).unwrap();
-    let decoder = match image_crate::codecs::png::PngDecoder::new(&mut image_file){
-        Ok(decoder) => decoder,
-        Err(error) => {
-            println!("Error decoding image: {:?}", error);
-            return 0.0;
-        }
-    };
-    let image = match Image::try_from(decoder){
-        Ok(image) => image,
-        Err(error) => {
-            println!("Error decoding image: {:?}", error);
-            return 0.0;
-        }
+
+    let c = ContentData {
+        gender: if gender == 0 { "Male".to_string() } else { "Female".to_string() },
+        age: child_age_months,
+        head_circumference: child_head_circumference_cm.to_string(),
+        mother_head_circumference: mother_circumference_cm.to_string(),
+        father_head_circumference: father_circumference_cm.to_string(),
+        premature_weeks: Some(premature_conception_weeks),
+        premature_days: Some(premature_conception_days),
+        corrected_age: corrected_age.to_string(),
+        child_score: child_score.to_string(),
+        corrected_child_score: corrected_child_score.to_string(),
+        father_score: dad_score.to_string(),
+        mother_score: mom_score.to_string(),
+        parental_average: parental_average.to_string(),
     };
 
-    let rotation_center_x = Px((image.image.width.0 as f32 / 2.0) as usize);
-    let rotation_center_y = Px((image.image.height.0 as f32 / 2.0) as usize);
+    let image_bytes: Vec<u8> = fs::read(written_image.clone()).unwrap();
 
-    // layer,
-    image.add_to_layer(
-        current_layer.clone(),
-        ImageTransform {
-            rotate: Some(ImageRotation {
-                angle_ccw_degrees: 0.0,
-                rotation_center_x,
-                rotation_center_y,
-            }),
-            translate_x: Some(Mm(50.0)),
-            translate_y: Some(Mm(50.0)),
-            ..Default::default()
-        },
-    );
-    
-    doc.save(&mut BufWriter::new(File::create(file_path).unwrap())).unwrap();
+    let content = Content { v: c };
+
+    let template = TypstTemplate::new(vec![font], template)
+        .with_static_file_resolver([("./images/graph.png", image_bytes)]);
+    let mut tracer = Tracer::new();
+
+
+    let doc = template
+        .compile_with_input(&mut tracer, content)
+        .expect("typst::compile() returned an error!");
+
+    // Create pdf
+    let pdf = typst_pdf::pdf(&doc, Smart::Auto, None);
+    fs::write(file_path, pdf).expect("Could not write pdf.");
 
     // Attempt to remove the temporary files
     path.close().unwrap();
@@ -325,4 +258,31 @@ fn main() {
         .invoke_handler(tauri::generate_handler![calculate_scores, make_pdf])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+impl From<Content> for Dict {
+    fn from(value: Content) -> Self {
+        value.into_dict()
+    }
+}
+
+#[derive(Debug, Clone, IntoValue, IntoDict)]
+struct Content {
+    v: ContentData,
+}
+
+#[derive(Debug, Clone, IntoValue, IntoDict)]
+struct ContentData {
+    gender: String,
+    age: u32,
+    head_circumference: String,
+    mother_head_circumference: String,
+    father_head_circumference: String,
+    premature_weeks: Option<u32>,
+    premature_days: Option<u32>,
+    corrected_age: String,
+    child_score: String,
+    corrected_child_score: String,
+    father_score: String,
+    mother_score: String,
+    parental_average: String,
 }
