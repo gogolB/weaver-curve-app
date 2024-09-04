@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use plotly::common::Marker;
 use typst::eval::Tracer;
 use typst::foundations::{Bytes, Dict, IntoValue, Smart};
 use typst::text::Font;
@@ -11,9 +10,10 @@ use tauri::Manager;
 use plotly::common::{
     DashType,Line, Mode,
 };
-use plotly::layout::Layout;
+use plotly::layout::{Axis, Layout};
 use plotly::color::NamedColor;
 use plotly::{Plot, Scatter};
+use plotly::common::{Marker, MarkerSymbol};
 
 use tempfile::NamedTempFile;
 use derive_typst_intoval::{IntoValue, IntoDict};
@@ -176,16 +176,19 @@ fn make_pdf(
     
     // Generate the Graph
     let mut plot = Plot::new();
-    let layout = Layout::new().title("Weaver Curve");
+    let layout = Layout::new()
+        .title("Weaver Curve")
+        .x_axis(Axis::new().title("Parental Average").range(vec![-5.0, 5.0]).position(0.0).anchor("y"))
+        .y_axis(Axis::new().title("Child Score").range(vec![-5.0, 5.0]).position(0.0).anchor("x"));
     let normal_trace = Scatter::new(vec![parental_average], vec![child_score])
         .name("Child Score")
-        .marker(Marker::new().color(color_baseline));
+        .marker(Marker::new().color(color_baseline).size(10));
     plot.add_trace(normal_trace);
     
     if (premature_conception_weeks > 0 ) || (premature_conception_days > 0) {
         let corrected_trace = Scatter::new(vec![parental_average], vec![corrected_child_score])
             .name("Child Score (Corrected)")
-            .marker(Marker::new().color(color_corrected));
+            .marker(Marker::new().color(color_corrected).symbol(MarkerSymbol::Diamond).size(12));
         plot.add_trace(corrected_trace);
     }
 
