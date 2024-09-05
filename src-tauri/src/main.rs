@@ -1,23 +1,21 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use plotly::color::NamedColor;
+use plotly::common::{DashType, Line, Mode};
+use plotly::common::{Marker, MarkerSymbol};
+use plotly::layout::{Axis, Layout};
+use plotly::{Plot, Scatter};
+use std::fs::{self};
+use std::vec;
+use tauri::Manager;
 use typst::eval::Tracer;
 use typst::foundations::{Bytes, Dict, IntoValue, Smart};
 use typst::text::Font;
 use typst_as_lib::TypstTemplate;
-use std::fs::{self};
-use std::vec;
-use tauri::Manager;
-use plotly::common::{
-    DashType,Line, Mode,
-};
-use plotly::layout::{Axis, Layout};
-use plotly::color::NamedColor;
-use plotly::{Plot, Scatter};
-use plotly::common::{Marker, MarkerSymbol};
 
+use derive_typst_intoval::{IntoDict, IntoValue};
 use tempfile::NamedTempFile;
-use derive_typst_intoval::{IntoValue, IntoDict};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -131,7 +129,7 @@ fn make_pdf(
     gender: u32,
     app_version: &str,
     child_dob: &str,
-) -> f64{
+) -> f64 {
     // Load the font file asset.
     let template_path = handle
         .path()
@@ -140,19 +138,26 @@ fn make_pdf(
             tauri::path::BaseDirectory::Resource,
         )
         .unwrap();
-    
+
     let template = fs::read_to_string(template_path).unwrap();
 
-    let font_files = vec!["Roboto-Black.ttf", "Roboto-BlackItalic.ttf", "Roboto-Bold.ttf", "Roboto-BoldItalic.ttf", "Roboto-Italic.ttf", "Roboto-Regular.ttf"];
+    let font_files = vec![
+        "Roboto-Black.ttf",
+        "Roboto-BlackItalic.ttf",
+        "Roboto-Bold.ttf",
+        "Roboto-BoldItalic.ttf",
+        "Roboto-Italic.ttf",
+        "Roboto-Regular.ttf",
+    ];
     let mut fonts = Vec::new();
     for font_file in font_files {
         let font_path = handle
-        .path()
-        .resolve(
-            format!("resources/fonts/Roboto/{}", font_file),
-            tauri::path::BaseDirectory::Resource,
-        )
-        .unwrap();
+            .path()
+            .resolve(
+                format!("resources/fonts/Roboto/{}", font_file),
+                tauri::path::BaseDirectory::Resource,
+            )
+            .unwrap();
         let font_data = fs::read(font_path).unwrap();
         let font_data = Bytes::from(font_data);
         let font = Font::new(font_data, 0).unwrap();
@@ -166,38 +171,73 @@ fn make_pdf(
     );
 
     // Write the results
-    let (dad_score, mom_score, child_score, corrected_child_score) = calculate_scores(child_age_months, child_head_circumference_cm, mother_circumference_cm, father_circumference_cm, premature_conception_weeks, premature_conception_days, gender);
-    
+    let (dad_score, mom_score, child_score, corrected_child_score) = calculate_scores(
+        child_age_months,
+        child_head_circumference_cm,
+        mother_circumference_cm,
+        father_circumference_cm,
+        premature_conception_weeks,
+        premature_conception_days,
+        gender,
+    );
+
     let parental_average = (dad_score + mom_score) / 2.0;
 
-    const INTERCEPT:f64 = 0.138891; 
-    const SLOPE:f64 = 0.483034;
+    const INTERCEPT: f64 = 0.138891;
+    const SLOPE: f64 = 0.483034;
 
     let average_y1: f64 = INTERCEPT + SLOPE * (-5.0 as f64);
     let average_y2: f64 = INTERCEPT + SLOPE * (5.0 as f64);
 
     let parent_avg_score = INTERCEPT + SLOPE * parental_average;
-    let is_normal = child_score < parent_avg_score + (2.0 as f64) && child_score > (parent_avg_score - 2.0 as f64);
-    let is_normal_corrected = corrected_child_score <  parent_avg_score + (2.0 as f64) && corrected_child_score > parent_avg_score - (2.0 as f64);
+    let is_normal = child_score < parent_avg_score + (2.0 as f64)
+        && child_score > (parent_avg_score - 2.0 as f64);
+    let is_normal_corrected = corrected_child_score < parent_avg_score + (2.0 as f64)
+        && corrected_child_score > parent_avg_score - (2.0 as f64);
 
-    let color_baseline = if is_normal { NamedColor::Green } else { NamedColor::Red };
-    let color_corrected = if is_normal_corrected { NamedColor::Green } else { NamedColor::Red };
-    
+    let color_baseline = if is_normal {
+        NamedColor::Green
+    } else {
+        NamedColor::Red
+    };
+    let color_corrected = if is_normal_corrected {
+        NamedColor::Green
+    } else {
+        NamedColor::Red
+    };
+
     // Generate the Graph
     let mut plot = Plot::new();
     let layout = Layout::new()
         .title("Weaver Curve")
-        .x_axis(Axis::new().title("Parental Average").range(vec![-5.0, 5.0]).position(0.0).anchor("y"))
-        .y_axis(Axis::new().title("Child Score").range(vec![-5.0, 5.0]).position(0.0).anchor("x"));
+        .x_axis(
+            Axis::new()
+                .title("Parental Average")
+                .range(vec![-5.0, 5.0])
+                .position(0.0)
+                .anchor("y"),
+        )
+        .y_axis(
+            Axis::new()
+                .title("Child Score")
+                .range(vec![-5.0, 5.0])
+                .position(0.0)
+                .anchor("x"),
+        );
     let normal_trace = Scatter::new(vec![parental_average], vec![child_score])
         .name("Child Score")
         .marker(Marker::new().color(color_baseline).size(10));
     plot.add_trace(normal_trace);
-    
-    if (premature_conception_weeks > 0 ) || (premature_conception_days > 0) {
+
+    if (premature_conception_weeks > 0) || (premature_conception_days > 0) {
         let corrected_trace = Scatter::new(vec![parental_average], vec![corrected_child_score])
             .name("Child Score (Corrected)")
-            .marker(Marker::new().color(color_corrected).symbol(MarkerSymbol::Diamond).size(12));
+            .marker(
+                Marker::new()
+                    .color(color_corrected)
+                    .symbol(MarkerSymbol::Diamond)
+                    .size(12),
+            );
         plot.add_trace(corrected_trace);
     }
 
@@ -217,7 +257,7 @@ fn make_pdf(
         .line(Line::new().color(NamedColor::Orange).dash(DashType::Dash));
     plot.add_trace(sd_2p_trace);
     plot.set_layout(layout);
-    
+
     let file = NamedTempFile::new().unwrap();
     let path = file.into_temp_path();
     let image_file_path = path.to_str().unwrap();
@@ -225,7 +265,11 @@ fn make_pdf(
     let written_image = format!("{image_file_path}.png");
 
     let c = ContentData {
-        gender: if gender == 0 { "Male".to_string() } else { "Female".to_string() },
+        gender: if gender == 0 {
+            "Male".to_string()
+        } else {
+            "Female".to_string()
+        },
         age: child_age_months,
         head_circumference: child_head_circumference_cm.to_string(),
         mother_head_circumference: mother_circumference_cm.to_string(),
@@ -250,7 +294,6 @@ fn make_pdf(
         .with_static_file_resolver([("./images/graph.png", image_bytes)]);
     let mut tracer = Tracer::new();
 
-
     let doc = template
         .compile_with_input(&mut tracer, content)
         .expect("typst::compile() returned an error!");
@@ -267,6 +310,7 @@ fn make_pdf(
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![calculate_scores, make_pdf])
