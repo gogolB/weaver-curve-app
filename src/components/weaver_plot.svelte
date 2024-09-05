@@ -84,6 +84,12 @@
         
       })
       console.log(result)
+
+      if (result) {
+        alert("PDF saved to " + path);
+      } else {
+        alert("Failed to save PDF");
+      }
     }
 
 </script>

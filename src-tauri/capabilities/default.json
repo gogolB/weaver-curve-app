@@ -16,17 +16,6 @@
     "core:tray:default",
     "shell:allow-open",
     "dialog:allow-save",
-    "fs:allow-temp-meta",
-    "fs:allow-temp-meta-recursive",
-    "fs:allow-temp-read",
-    "fs:allow-temp-read-recursive",
-    "fs:allow-temp-write",
-    "fs:allow-temp-write-recursive",
-    "fs:allow-read",
-    "fs:allow-write",
-    "fs:allow-mkdir",
-    "fs:allow-create",
-    "fs:allow-rename",
-    "fs:allow-remove"
+    "dialog:allow-message"
   ]
 }
