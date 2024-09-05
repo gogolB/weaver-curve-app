@@ -129,7 +129,7 @@ fn make_pdf(
     gender: u32,
     app_version: &str,
     child_dob: &str,
-) -> f64 {
+) -> Result<String, Error> {
     // Load the font file asset.
     let template_path = handle
         .path()
@@ -137,9 +137,9 @@ fn make_pdf(
             "resources/templates/template.typ",
             tauri::path::BaseDirectory::Resource,
         )
-        .unwrap();
+        .expect("Could not find template file");
 
-    let template = fs::read_to_string(template_path).unwrap();
+    let template = fs::read_to_string(template_path).expect("Could not read template file.");
 
     let font_files = vec![
         "Roboto-Black.ttf",
@@ -157,10 +157,10 @@ fn make_pdf(
                 format!("resources/fonts/Roboto/{}", font_file),
                 tauri::path::BaseDirectory::Resource,
             )
-            .unwrap();
-        let font_data = fs::read(font_path).unwrap();
+            .expect("Could not find font file");
+        let font_data = fs::read(font_path).expect("Could not read font file");
         let font_data = Bytes::from(font_data);
-        let font = Font::new(font_data, 0).unwrap();
+        let font = Font::new(font_data, 0).expect("Could not parse font file");
         fonts.push(font);
     }
 
@@ -258,9 +258,9 @@ fn make_pdf(
     plot.add_trace(sd_2p_trace);
     plot.set_layout(layout);
 
-    let file = NamedTempFile::new().unwrap();
+    let file = NamedTempFile::new().expect("Could not create temporary file.");
     let path = file.into_temp_path();
-    let image_file_path = path.to_str().unwrap();
+    let image_file_path = path.to_str().expect("Could not convert path to string.");
     plot.write_image(image_file_path, plotly::ImageFormat::PNG, 1024, 720, 1.0);
     let written_image = format!("{image_file_path}.png");
 
@@ -286,7 +286,7 @@ fn make_pdf(
         dob: child_dob.to_string(),
     };
 
-    let image_bytes: Vec<u8> = fs::read(written_image.clone()).unwrap();
+    let image_bytes: Vec<u8> = fs::read(written_image.clone()).expect("Could not read image.");
 
     let content = Content { v: c };
 
@@ -303,9 +303,10 @@ fn make_pdf(
     fs::write(file_path, pdf).expect("Could not write pdf.");
 
     // Attempt to remove the temporary files
-    path.close().unwrap();
-    let _ = std::fs::remove_file(written_image).unwrap();
-    0.0
+    path.close().expect("Could not remove temporary files.");
+    let _ = std::fs::remove_file(written_image).expect("Could not remove temporary image");
+
+    Ok("Success".to_string())
 }
 
 fn main() {
@@ -345,4 +346,21 @@ struct ContentData {
     parental_average: String,
     version: String,
     dob: String,
+}
+
+// create the error type that represents all errors possible in our program
+#[derive(Debug, thiserror::Error)]
+enum Error {
+  #[error(transparent)]
+  Io(#[from] std::io::Error)
+}
+
+// we must manually implement serde::Serialize
+impl serde::Serialize for Error {
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+    S: serde::ser::Serializer,
+  {
+    serializer.serialize_str(self.to_string().as_ref())
+  }
 }

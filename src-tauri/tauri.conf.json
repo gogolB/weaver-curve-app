@@ -31,7 +31,7 @@
       "icons/icon.ico"
     ],
     "resources": [
-        "resources/fonts/*",
+        "resources/fonts/Roboto/*",
         "resources/templates/*"
       ]
   }

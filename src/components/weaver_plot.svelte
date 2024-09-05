@@ -70,7 +70,7 @@
         ],
       });
       const appVersion = await getVersion();
-      invoke("make_pdf", {
+      let result = await invoke("make_pdf", {
         filePath: path,
         childAgeMonths: child_age_in_months,
         childHeadCircumferenceCm: child_head_circumference_in_cm,
@@ -83,6 +83,7 @@
         appVersion: appVersion
         
       })
+      console.log(result)
     }
 
 </script>
