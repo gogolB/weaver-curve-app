@@ -179,87 +179,10 @@ fn make_pdf(
 
     let parental_average = (dad_score + mom_score) / 2.0;
 
-    const INTERCEPT: f64 = 0.138891;
-    const SLOPE: f64 = 0.483034;
+    // Generate the graph. In memory.
+    let image_bytes: Vec<u8> = generate_chart(dad_score, mom_score, child_score, corrected_child_score).expect("Could not generate chart.");
 
-    let average_y1: f64 = INTERCEPT + SLOPE * (-5.0 as f64);
-    let average_y2: f64 = INTERCEPT + SLOPE * (5.0 as f64);
-
-    let parent_avg_score = INTERCEPT + SLOPE * parental_average;
-    let is_normal = child_score < parent_avg_score + (2.0 as f64)
-        && child_score > (parent_avg_score - 2.0 as f64);
-    let is_normal_corrected = corrected_child_score < parent_avg_score + (2.0 as f64)
-        && corrected_child_score > parent_avg_score - (2.0 as f64);
-
-    let color_baseline = if is_normal {
-        NamedColor::Green
-    } else {
-        NamedColor::Red
-    };
-    let color_corrected = if is_normal_corrected {
-        NamedColor::Green
-    } else {
-        NamedColor::Red
-    };
-
-    // Generate the Graph
-    let mut plot = Plot::new();
-    let layout = Layout::new()
-        .title("Weaver Curve")
-        .x_axis(
-            Axis::new()
-                .title("Parental Average")
-                .range(vec![-5.0, 5.0])
-                .position(0.0)
-                .anchor("y"),
-        )
-        .y_axis(
-            Axis::new()
-                .title("Child Score")
-                .range(vec![-5.0, 5.0])
-                .position(0.0)
-                .anchor("x"),
-        );
-    let normal_trace = Scatter::new(vec![parental_average], vec![child_score])
-        .name("Child Score")
-        .marker(Marker::new().color(color_baseline).size(10));
-    plot.add_trace(normal_trace);
-
-    if (premature_conception_weeks > 0) || (premature_conception_days > 0) {
-        let corrected_trace = Scatter::new(vec![parental_average], vec![corrected_child_score])
-            .name("Child Score (Corrected)")
-            .marker(
-                Marker::new()
-                    .color(color_corrected)
-                    .symbol(MarkerSymbol::Diamond)
-                    .size(12),
-            );
-        plot.add_trace(corrected_trace);
-    }
-
-    let avg_trace = Scatter::new(vec![-5.0, 5.0], vec![average_y1, average_y2])
-        .name("Parental Average")
-        .mode(Mode::Lines)
-        .line(Line::new().color(NamedColor::Blue));
-    plot.add_trace(avg_trace);
-    let sd_2m_trace = Scatter::new(vec![-5.0, 5.0], vec![average_y1 - 2.0, average_y2 - 2.0])
-        .name("- 2 SD")
-        .mode(Mode::Lines)
-        .line(Line::new().color(NamedColor::Orange).dash(DashType::Dash));
-    plot.add_trace(sd_2m_trace);
-    let sd_2p_trace = Scatter::new(vec![-5.0, 5.0], vec![average_y1 + 2.0, average_y2 + 2.0])
-        .name("+ 2 SD")
-        .mode(Mode::Lines)
-        .line(Line::new().color(NamedColor::Orange).dash(DashType::Dash));
-    plot.add_trace(sd_2p_trace);
-    plot.set_layout(layout);
-
-
-    let named_temp_file = Builder::new().prefix("weaver_curve").suffix(".png").tempfile().expect("Could not create temporary file.");
-    let path = named_temp_file.into_temp_path();
-    let image_file_path = path.to_str().expect("Could not convert path to string.");
-    plot.write_image(image_file_path, plotly::ImageFormat::PNG, 1024, 720, 1.0);
-    
+    // Generate the PDF
     let c = ContentData {
         gender: if gender == 0 {
             "Male".to_string()
@@ -281,9 +204,6 @@ fn make_pdf(
         version: app_version.to_string(),
         dob: child_dob.to_string(),
     };
-
-    let image_bytes: Vec<u8> = fs::read(image_file_path).expect("Could not read image.");
-
     let content = Content { v: c };
 
     let template = TypstTemplate::new(fonts, template)
@@ -297,9 +217,6 @@ fn make_pdf(
     // Create pdf
     let pdf = typst_pdf::pdf(&doc, Smart::Auto, None);
     fs::write(file_path, pdf).expect("Could not write pdf.");
-
-    // Attempt to remove the temporary files
-    path.close().expect("Could not remove temporary files.");
 
     Ok("Success".to_string())
 }
@@ -321,7 +238,8 @@ fn generate_chart(dad_score:f64, mom_score:f64, child_score:f64, corrected_child
     let is_normal_corrected = corrected_child_score < parent_avg_score + (2.0 as f64)
         && corrected_child_score > parent_avg_score - (2.0 as f64);
 
-
+    let bytes = vec![100; 100];
+    Ok(bytes)
 }
 
 fn main() {
