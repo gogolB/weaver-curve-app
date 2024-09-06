@@ -15,7 +15,7 @@ use typst::text::Font;
 use typst_as_lib::TypstTemplate;
 
 use derive_typst_intoval::{IntoDict, IntoValue};
-use tempfile::NamedTempFile;
+use tempfile::Builder;
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -258,12 +258,12 @@ fn make_pdf(
     plot.add_trace(sd_2p_trace);
     plot.set_layout(layout);
 
-    let file = NamedTempFile::new().expect("Could not create temporary file.");
-    let path = file.into_temp_path();
+
+    let named_temp_file = Builder::new().prefix("weaver_curve").suffix(".png").tempfile().expect("Could not create temporary file.");
+    let path = named_temp_file.into_temp_path();
     let image_file_path = path.to_str().expect("Could not convert path to string.");
     plot.write_image(image_file_path, plotly::ImageFormat::PNG, 1024, 720, 1.0);
-    let written_image = format!("{image_file_path}.png");
-
+    let written_image = image_file_path.to_string();
     let c = ContentData {
         gender: if gender == 0 {
             "Male".to_string()
