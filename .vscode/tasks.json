@@ -18,8 +18,8 @@
         "label": "ui:build",
         "type": "shell",
         // change this to your `beforeBuildCommand`:
-        "command": "npm run build",
-        "args": [""]
+        "command": "yarn",
+        "args": ["build"]
       }
     ]
   }

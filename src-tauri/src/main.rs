@@ -304,7 +304,6 @@ fn make_pdf(
 
     // Attempt to remove the temporary files
     path.close().expect("Could not remove temporary files.");
-    let _ = std::fs::remove_file(written_image).expect("Could not remove temporary image");
 
     Ok("Success".to_string())
 }
