@@ -1,11 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use plotly::color::NamedColor;
-use plotly::common::{DashType, Line, Mode};
-use plotly::common::{Marker, MarkerSymbol};
-use plotly::layout::{Axis, Layout};
-use plotly::{Plot, Scatter};
 use std::fs::{self};
 use std::vec;
 use tauri::Manager;
