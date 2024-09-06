@@ -25,4 +25,5 @@ derive_typst_intoval = "0.2.1"
 typst-pdf = "0.11.1"
 tauri-plugin-fs = "2.0.0-rc"
 thiserror = "1.0.63"
+charming = { version = "0.3.1", features = ["image"] }
 

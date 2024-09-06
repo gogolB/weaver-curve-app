@@ -17,7 +17,8 @@ use typst_as_lib::TypstTemplate;
 use derive_typst_intoval::{IntoDict, IntoValue};
 use tempfile::Builder;
 
-// Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
+use charming::{Chart, ImageRenderer, series::{Line, Scatter}};
+
 #[tauri::command]
 fn calculate_scores(
     child_age_months: u32,
@@ -263,7 +264,7 @@ fn make_pdf(
     let path = named_temp_file.into_temp_path();
     let image_file_path = path.to_str().expect("Could not convert path to string.");
     plot.write_image(image_file_path, plotly::ImageFormat::PNG, 1024, 720, 1.0);
-    let written_image = image_file_path.to_string();
+    
     let c = ContentData {
         gender: if gender == 0 {
             "Male".to_string()
@@ -286,7 +287,7 @@ fn make_pdf(
         dob: child_dob.to_string(),
     };
 
-    let image_bytes: Vec<u8> = fs::read(written_image.clone()).expect("Could not read image.");
+    let image_bytes: Vec<u8> = fs::read(image_file_path).expect("Could not read image.");
 
     let content = Content { v: c };
 
@@ -306,6 +307,26 @@ fn make_pdf(
     path.close().expect("Could not remove temporary files.");
 
     Ok("Success".to_string())
+}
+
+
+fn generate_chart(dad_score:f64, mom_score:f64, child_score:f64, corrected_child_score:f64) -> Result<Vec<u8>, Error>
+{
+    let parental_average = (dad_score + mom_score) / 2.0;
+
+    const INTERCEPT: f64 = 0.138891;
+    const SLOPE: f64 = 0.483034;
+
+    let average_y1: f64 = INTERCEPT + SLOPE * (-5.0 as f64);
+    let average_y2: f64 = INTERCEPT + SLOPE * (5.0 as f64);
+
+    let parent_avg_score = INTERCEPT + SLOPE * parental_average;
+    let is_normal = child_score < parent_avg_score + (2.0 as f64)
+        && child_score > (parent_avg_score - 2.0 as f64);
+    let is_normal_corrected = corrected_child_score < parent_avg_score + (2.0 as f64)
+        && corrected_child_score > parent_avg_score - (2.0 as f64);
+
+
 }
 
 fn main() {
