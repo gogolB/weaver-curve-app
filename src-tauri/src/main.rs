@@ -3,6 +3,8 @@
 
 use std::fs::{self};
 use std::vec;
+use charming::element::{LineStyle, LineStyleType, NameLocation};
+use charming::ImageFormat;
 use tauri::Manager;
 use typst::eval::Tracer;
 use typst::foundations::{Bytes, Dict, IntoValue, Smart};
@@ -10,9 +12,8 @@ use typst::text::Font;
 use typst_as_lib::TypstTemplate;
 
 use derive_typst_intoval::{IntoDict, IntoValue};
-use tempfile::Builder;
 
-use charming::{Chart, ImageRenderer, series::{Line, Scatter}};
+use charming::{Chart, ImageRenderer, component::{Legend, Title, Axis}, series::{Line, Scatter}, element::{Symbol, ItemStyle}};
 
 #[tauri::command]
 fn calculate_scores(
@@ -178,9 +179,9 @@ fn make_pdf(
     );
 
     let parental_average = (dad_score + mom_score) / 2.0;
-
+    let display_correction = corrected_age != child_age_months as f32;
     // Generate the graph. In memory.
-    let image_bytes: Vec<u8> = generate_chart(dad_score, mom_score, child_score, corrected_child_score).expect("Could not generate chart.");
+    let image_bytes: Vec<u8> = generate_chart(dad_score, mom_score, child_score, corrected_child_score, display_correction).expect("Could not generate chart.");
 
     // Generate the PDF
     let c = ContentData {
@@ -222,7 +223,7 @@ fn make_pdf(
 }
 
 
-fn generate_chart(dad_score:f64, mom_score:f64, child_score:f64, corrected_child_score:f64) -> Result<Vec<u8>, Error>
+fn generate_chart(dad_score:f64, mom_score:f64, child_score:f64, corrected_child_score:f64, dislay_correction:bool) -> Result<Vec<u8>, Error>
 {
     let parental_average = (dad_score + mom_score) / 2.0;
 
@@ -238,8 +239,88 @@ fn generate_chart(dad_score:f64, mom_score:f64, child_score:f64, corrected_child
     let is_normal_corrected = corrected_child_score < parent_avg_score + (2.0 as f64)
         && corrected_child_score > parent_avg_score - (2.0 as f64);
 
-    let bytes = vec![100; 100];
-    Ok(bytes)
+    let color_normal = if is_normal { "green" } else { "red" };
+    let color_normal_corrected = if is_normal_corrected { "green" } else { "red" };
+
+    let mut chart = Chart::new()
+        .legend(Legend::new().top("bottom"))
+        .x_axis(Axis::new()
+            .name("Parental Score")
+            .name_location(NameLocation::Middle)
+            .position("bottom")
+            .min(-5).max(5)
+            .name_gap(10)
+            .interval(1)
+        )
+        .y_axis(Axis::new()
+            .name("Child Score")
+            .name_location(NameLocation::Middle)
+            .position("left")
+            .name_rotation(-90)
+            .min(-5).max(5)
+            .interval(1)
+        )
+        .series(
+            Scatter::new()
+                .name("Child Score")
+                .symbol(Symbol::Circle)
+                .item_style(
+                    ItemStyle::new()
+                        .color(color_normal)
+                        .border_color(color_normal)
+                        .border_width(1),
+                )
+                .data(vec![
+                    vec![parental_average, child_score],
+                ]),
+        )
+        .series(
+            Line::new()
+                .name("Parental Average")
+                .item_style(ItemStyle::new().color("blue"))
+                .data(vec![
+                    vec![-5.0, average_y1],
+                    vec![5.0, average_y2],
+                ])
+        )
+        .series(
+            Line::new()
+                .name("-2 SD")
+                .line_style(LineStyle::new().type_(LineStyleType::Dashed).color("orange"))
+                .data(vec![
+                    vec![-5.0, average_y1 - 2.0],
+                    vec![5.0, average_y2 - 2.0],
+                ])
+        )
+        .series(
+            Line::new()
+                .name("+2 SD")
+                .line_style(LineStyle::new().type_(LineStyleType::Dashed).color("orange"))
+                .data(vec![
+                    vec![-5.0, average_y1 + 2.0],
+                    vec![5.0, average_y2 + 2.0],
+                ])
+        );
+
+    if dislay_correction {
+        chart = chart.series(
+            Scatter::new()
+                .name("Corrected Child Score")
+                .symbol(Symbol::Diamond)
+                .item_style(
+                    ItemStyle::new()
+                        .color(color_normal_corrected)
+                        .border_color(color_normal_corrected)
+                        .border_width(1),
+                )
+                .data(vec![
+                    vec![parental_average, corrected_child_score],
+                ]),
+        );
+    }
+    let mut renderer = ImageRenderer::new(1024, 720);
+    let data = renderer.render_format(ImageFormat::Png, &chart).expect("Failed to Render Image to PNG");
+    Ok(data)
 }
 
 fn main() {
