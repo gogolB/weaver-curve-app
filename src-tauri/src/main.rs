@@ -13,7 +13,7 @@ use typst_as_lib::TypstTemplate;
 
 use derive_typst_intoval::{IntoDict, IntoValue};
 
-use charming::{Chart, ImageRenderer, component::{Legend, Title, Axis}, series::{Line, Scatter}, element::{Symbol, ItemStyle}};
+use charming::{Chart, ImageRenderer, component::{Legend, Axis}, series::{Line, Scatter}, element::{Symbol, ItemStyle}};
 
 #[tauri::command]
 fn calculate_scores(
