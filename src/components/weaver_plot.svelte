@@ -70,6 +70,12 @@
         ],
       });
       const appVersion = await getVersion();
+      const dobAsString = typeof child_dob === "string"
+        ? child_dob
+        : child_dob
+          ? String(child_dob)
+          : "";
+
       let result = await invoke("make_pdf", {
         filePath: path,
         childAgeMonths: child_age_in_months,
@@ -79,9 +85,9 @@
         prematureConceptionWeeks: premature_conception_in_weeks,
         prematureConceptionDays: premature_conception_in_days,
         gender: gender,
-        childDob: child_dob,
+        childDob: dobAsString,
         appVersion: appVersion
-        
+
       })
       console.log(result)
 
