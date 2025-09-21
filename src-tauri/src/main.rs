@@ -384,3 +384,110 @@ impl serde::Serialize for Error {
     serializer.serialize_str(self.to_string().as_ref())
   }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_scores_basic() {
+        let (dad_score, mom_score, child_score, corrected_child_score) = calculate_scores(
+            12, // child_age_months
+            47.0, // child_head_circumference_cm
+            54.0, // mother_circumference_cm  
+            56.0, // father_circumference_cm
+            0, // premature_conception_weeks
+            0, // premature_conception_days
+            0, // gender (male)
+        );
+
+        // Verify scores are calculated (specific values depend on interpolation)
+        assert!(dad_score > -10.0 && dad_score < 10.0);
+        assert!(mom_score > -10.0 && mom_score < 10.0);
+        assert!(child_score > -10.0 && child_score < 10.0);
+        assert!(corrected_child_score > -10.0 && corrected_child_score < 10.0);
+        
+        // When no premature birth, corrected score should equal regular score
+        assert_eq!(child_score, corrected_child_score);
+    }
+
+    #[test]
+    fn test_calculate_scores_with_premature_birth() {
+        let (_, _, child_score, corrected_child_score) = calculate_scores(
+            12, // child_age_months
+            47.0, // child_head_circumference_cm
+            54.0, // mother_circumference_cm  
+            56.0, // father_circumference_cm
+            4, // premature_conception_weeks
+            3, // premature_conception_days
+            0, // gender (male)
+        );
+
+        // With premature birth, corrected score should differ from regular score
+        assert_ne!(child_score, corrected_child_score);
+        assert!(child_score > -10.0 && child_score < 10.0);
+        assert!(corrected_child_score > -10.0 && corrected_child_score < 10.0);
+    }
+
+    #[test]
+    fn test_get_corrected_age_no_premature() {
+        let corrected_age = get_corrected_age(12, 0, 0);
+        assert_eq!(corrected_age, 12.0);
+    }
+
+    #[test]
+    fn test_get_corrected_age_with_premature() {
+        let corrected_age = get_corrected_age(12, 4, 3);
+        // Should be less than 12 months due to premature birth correction
+        assert!(corrected_age < 12.0);
+        assert!(corrected_age > 0.0);
+    }
+
+    #[test]
+    fn test_get_head_circumference_data_male() {
+        let (head_circumference, head_std) = get_head_circumference_data(12.0, 0);
+        
+        // Should return reasonable values for 12-month-old male
+        assert!(head_circumference > 40.0 && head_circumference < 50.0);
+        assert!(head_std > 1.0 && head_std < 2.0);
+    }
+
+    #[test]
+    fn test_get_head_circumference_data_female() {
+        let (head_circumference, head_std) = get_head_circumference_data(12.0, 1);
+        
+        // Should return reasonable values for 12-month-old female
+        assert!(head_circumference > 40.0 && head_circumference < 50.0);
+        assert!(head_std > 1.0 && head_std < 2.0);
+    }
+
+    #[test]
+    fn test_generate_chart_returns_valid_png() {
+        let result = generate_chart(1.0, 1.0, 0.5, 0.3, false);
+        assert!(result.is_ok());
+        
+        let data = result.unwrap();
+        assert!(data.len() > 0);
+        
+        // Check PNG signature
+        assert_eq!(&data[0..8], &[137, 80, 78, 71, 13, 10, 26, 10]);
+    }
+
+    #[test]
+    fn test_parent_score_calculations() {
+        // Test with known values
+        let (dad_score, mom_score, _, _) = calculate_scores(
+            12, // child_age_months
+            47.0, // child_head_circumference_cm
+            54.94, // mother_circumference_cm (exactly at female mean)
+            55.95, // father_circumference_cm (exactly at male mean)
+            0, // premature_conception_weeks
+            0, // premature_conception_days
+            0, // gender (male)
+        );
+
+        // Parents with exactly average head circumference should have score near 0
+        assert!(dad_score.abs() < 0.1);
+        assert!(mom_score.abs() < 0.1);
+    }
+}
