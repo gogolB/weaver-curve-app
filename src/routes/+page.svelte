@@ -93,9 +93,8 @@
       gender: gender_id}
     ).then((res: any) => {
       show_scores = true;
-      if (premature_conception_in_days > 0 || premature_conception_in_weeks > 0) {
-        show_corrected_scores = true;
-      }
+      show_corrected_scores =
+        premature_conception_in_days > 0 || premature_conception_in_weeks > 0;
       father_score = res[0];
       mother_score = res[1];
       child_score = res[2];
