@@ -138,6 +138,12 @@ fn make_pdf(
 
     let template = fs::read_to_string(template_path).expect("Could not read template file.");
 
+    let dob_for_template = if child_dob.trim().is_empty() {
+        None
+    } else {
+        Some(child_dob.trim().to_string())
+    };
+
     let font_files = vec![
         "Roboto-Black.ttf",
         "Roboto-BlackItalic.ttf",
@@ -203,7 +209,7 @@ fn make_pdf(
         mother_score: format!("{:.2}", mom_score),
         parental_average: format!("{:.2}", parental_average),
         version: app_version.to_string(),
-        dob: child_dob.to_string(),
+        dob: dob_for_template.unwrap_or_else(|| "Not provided".to_string()),
     };
     let content = Content { v: c };
 
