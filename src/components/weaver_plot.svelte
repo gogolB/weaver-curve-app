@@ -12,7 +12,7 @@
     export let correct_score;
     export let mother_score;
     export let father_score;
-    // @ts-ignore
+    /** @type {string | null | undefined} */
     export let child_dob;
 
     export let child_age_in_months = 0;
@@ -69,6 +69,10 @@
           },
         ],
       });
+      if (!path) {
+        console.log("Save dialog cancelled by user");
+        return;
+      }
       const appVersion = await getVersion();
       let result = await invoke("make_pdf", {
         filePath: path,
