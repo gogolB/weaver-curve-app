@@ -259,7 +259,7 @@
                 <span class="label-text-alt">in days</span>
               </div>
               <input type="number" class="input input-bordered {error_premature_conception_in_days ? 'input-error' : ''}" bind:value={premature_conception_in_days}/>
-              {#if error_premature_conception_in_weeks}
+              {#if error_premature_conception_in_days}
                 <div class="label">
                   <span class="label-text-alt text-error">Please enter a valid age in days</span>
                 </div>
