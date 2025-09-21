@@ -39,6 +39,13 @@
   function process_form() {
     console.log("Processing form");
     let error = false;
+    error_selected_gender = false;
+    error_child_age_in_months = false;
+    error_child_head_circumference_in_cm = false;
+    error_mother_circumference_in_cm = false;
+    error_father_circumference_in_cm = false;
+    error_premature_conception_in_days = false;
+    error_premature_conception_in_weeks = false;
     if (selected_gender.length == 0) {
       error_selected_gender = true;
       error = true;
@@ -130,6 +137,12 @@
     show_corrected_scores = false;
     selected_gender = "";
     error_selected_gender = false;
+    error_child_age_in_months = false;
+    error_child_head_circumference_in_cm = false;
+    error_mother_circumference_in_cm = false;
+    error_father_circumference_in_cm = false;
+    error_premature_conception_in_days = false;
+    error_premature_conception_in_weeks = false;
     error = "";
     child_age_in_months = 0;
     child_head_circumference_in_cm = 0;

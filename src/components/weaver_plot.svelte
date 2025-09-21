@@ -12,7 +12,7 @@
     export let correct_score;
     export let mother_score;
     export let father_score;
-    // @ts-ignore
+    /** @type {string} */
     export let child_dob;
 
     export let child_age_in_months = 0;
