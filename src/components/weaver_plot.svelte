@@ -90,9 +90,25 @@
             if (!path) return;
 
             const appVersion = await getVersion();
-            const svgData = new XMLSerializer().serializeToString(svgElement);
 
-            const pdfBytes = generatePdf({
+            // Clone SVG and add white background + dark text for PDF (the app uses dark theme)
+            const svgClone = svgElement.cloneNode(true) as SVGSVGElement;
+            svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            // Add white background rect as first child
+            const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bgRect.setAttribute('width', '100%');
+            bgRect.setAttribute('height', '100%');
+            bgRect.setAttribute('fill', 'white');
+            svgClone.insertBefore(bgRect, svgClone.firstChild);
+            // Change white text/fills to dark for print
+            svgClone.querySelectorAll('[fill="white"]').forEach(el => el.setAttribute('fill', '#222'));
+            // Ensure axis tick text is visible (d3 axes use currentColor)
+            svgClone.querySelectorAll('.tick text').forEach(el => el.setAttribute('fill', '#222'));
+            svgClone.querySelectorAll('.domain').forEach(el => el.setAttribute('stroke', '#222'));
+            svgClone.querySelectorAll('.tick line').forEach(el => el.setAttribute('stroke', '#222'));
+            const svgData = new XMLSerializer().serializeToString(svgClone);
+
+            const pdfBytes = await generatePdf({
                 svgData,
                 svgWidth: chartWidth,
                 svgHeight: chartHeight,

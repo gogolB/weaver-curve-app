@@ -23,7 +23,38 @@ export interface PdfExportOptions {
     isAbnormalCorrected: boolean;
 }
 
-export function generatePdf(opts: PdfExportOptions): Uint8Array {
+/**
+ * Rasterize an SVG string to a PNG data URL via an offscreen canvas.
+ * Uses 2x scale for crisp rendering in print.
+ */
+function svgToImageDataUrl(svgData: string, width: number, height: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const scale = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = width * scale;
+        canvas.height = height * scale;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            reject(new Error('Could not get canvas 2d context'));
+            return;
+        }
+
+        const img = new Image();
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        img.onerror = (e) => {
+            reject(new Error(`Failed to load SVG as image: ${e}`));
+        };
+
+        // Encode SVG as a data URL for the Image element
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        img.src = URL.createObjectURL(svgBlob);
+    });
+}
+
+export async function generatePdf(opts: PdfExportOptions): Promise<Uint8Array> {
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
@@ -165,7 +196,7 @@ export function generatePdf(opts: PdfExportOptions): Uint8Array {
     doc.line(margin, y, pageWidth - margin, y);
     y += 5;
 
-    // Embed SVG as image
+    // Rasterize SVG to PNG via canvas, then embed as image
     const chartPdfWidth = pageWidth - 2 * margin;
     const chartPdfHeight = chartPdfWidth * (opts.svgHeight / opts.svgWidth);
 
@@ -176,9 +207,10 @@ export function generatePdf(opts: PdfExportOptions): Uint8Array {
     }
 
     try {
-        doc.addSvgAsImage(opts.svgData, margin, y, chartPdfWidth, chartPdfHeight);
-    } catch {
-        // If SVG embedding fails, add a placeholder text
+        const imageDataUrl = await svgToImageDataUrl(opts.svgData, opts.svgWidth, opts.svgHeight);
+        doc.addImage(imageDataUrl, 'PNG', margin, y, chartPdfWidth, chartPdfHeight);
+    } catch (err) {
+        console.error('SVG rasterization failed:', err);
         doc.setFontSize(10);
         doc.setTextColor(128);
         doc.text('[Chart could not be embedded — see application for visual]', margin, y + 10);
