@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCalculateScores } from "$lib/api";
   import ScoreCard from "../components/score_card.svelte";
   import WeaverPlot from "../components/weaver_plot.svelte";
 
@@ -83,7 +83,7 @@
       return;
     }
 
-    invoke("calculate_scores", {
+    invokeCalculateScores({
       childAgeMonths: child_age_in_months,
       childHeadCircumferenceCm: child_head_circumference_in_cm,
       motherCircumferenceCm: mother_circumference_in_cm,
@@ -91,7 +91,7 @@
       prematureConceptionWeeks: premature_conception_in_weeks,
       prematureConceptionDays: premature_conception_in_days,
       gender: selected_gender,
-    }).then((res: any) => {
+    }).then((res) => {
       show_scores = true;
       show_corrected_scores =
         premature_conception_in_days > 0 || premature_conception_in_weeks > 0;
