@@ -23,7 +23,7 @@
     "@tauri-apps/plugin-fs": "^2.4.5",
     "@tauri-apps/plugin-shell": "^2.3.5",
     "d3": "^7.9.0",
-    "jspdf": "^2.5.2"
+    "jspdf": "^4.2.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.52.0",
