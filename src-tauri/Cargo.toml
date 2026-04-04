@@ -13,16 +13,10 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 interp = "1.0.3"
-tauri-plugin-dialog = "2"
-tempfile = "3"
-typst-as-lib = "0.8.0"
-typst = "0.11.1"
-derive_typst_intoval = "0.2.1"
-typst-pdf = "0.11.1"
-tauri-plugin-fs = "2"
-thiserror = "1"
-charming = { version = "0.3.1", features = ["image", "ssr"] }
+thiserror = "2"
 
