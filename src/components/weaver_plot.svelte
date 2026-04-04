@@ -51,9 +51,9 @@
         bottom: 50,
     };
 
-    let gy: SVGGElement;
-    let gx: SVGGElement;
-    let svgElement: SVGSVGElement;
+    let gy = $state<SVGGElement>(undefined!);
+    let gx = $state<SVGGElement>(undefined!);
+    let svgElement = $state<SVGSVGElement>(undefined!);
 
     let xScale = $derived(scaleLinear().domain([-5, 5]).range([paddings.left, chartWidth - paddings.right]));
     let yScale = $derived(scaleLinear().domain([5, -5]).range([paddings.top, chartHeight - paddings.bottom]));
