@@ -1,20 +1,31 @@
-<script>
-    export let show_score = false;
-    export let show_corrected_score = false;
-    export let child_score;
-    export let correct_score;
-    export let mother_score;
-    export let father_score;
-    export let child_age_in_months;
-    export let gestiational_age_in_weeks = 0;
+<script lang="ts">
+    import { INTERCEPT, SLOPE, SD_THRESHOLD } from '$lib/constants';
 
-    const intercept = 0.138891; 
-    const slope = 0.483034;
-    $: parental_average = (mother_score + father_score) / 2;
-    $: y_mean = intercept + slope * parental_average
-    $: is_abnormal = child_score > y_mean + 2 || child_score < y_mean - 2
-    $: is_abnormal_corrected = correct_score > y_mean + 2 || correct_score < y_mean - 2
-    $: is_invalid  = (gestiational_age_in_weeks > 0 && child_age_in_months < (40 - gestiational_age_in_weeks) / 4.345) ? true : false;
+    let {
+        show_score = false,
+        show_corrected_score = false,
+        child_score,
+        correct_score,
+        mother_score,
+        father_score,
+        child_age_in_months,
+        gestational_age_in_weeks = 0,
+    }: {
+        show_score: boolean;
+        show_corrected_score: boolean;
+        child_score: number;
+        correct_score: number;
+        mother_score: number;
+        father_score: number;
+        child_age_in_months: number;
+        gestational_age_in_weeks?: number;
+    } = $props();
+
+    let parental_average = $derived((mother_score + father_score) / 2);
+    let y_mean = $derived(INTERCEPT + SLOPE * parental_average);
+    let is_abnormal = $derived(child_score > y_mean + SD_THRESHOLD || child_score < y_mean - SD_THRESHOLD);
+    let is_abnormal_corrected = $derived(correct_score > y_mean + SD_THRESHOLD || correct_score < y_mean - SD_THRESHOLD);
+    let is_invalid = $derived(gestational_age_in_weeks > 0 && child_age_in_months < (40 - gestational_age_in_weeks) / 4.345);
 </script>
 
 <div class="card bg-neutral text-neutral-content place-self-center w-5/6 mt-3">
@@ -39,7 +50,7 @@
                   <div class="divider divider-vertical"></div>
                   <div class="stat place-items-center">
                     <div class="stat-title">Parental Average</div>
-                    <div class="stat-value">{((mother_score + father_score) / 2).toFixed(2)}</div>
+                    <div class="stat-value">{parental_average.toFixed(2)}</div>
                     <div class="stat-desc text-secondary">M:{mother_score.toFixed(2)} | F:{father_score.toFixed(2)}</div>
                   </div>
               </div>
@@ -51,7 +62,7 @@
                     <div class="stat-title">Child</div>
                     <div class="skeleton h-8 w-28"></div>
                 </div>
-              
+
                 <div class="stat place-items-center">
                   <div class="stat-title">Parental Average</div>
                   <div class="skeleton h-8 w-28"></div>

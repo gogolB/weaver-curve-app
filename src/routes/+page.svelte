@@ -1,97 +1,97 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { invokeCalculateScores } from "$lib/api";
   import ScoreCard from "../components/score_card.svelte";
   import WeaverPlot from "../components/weaver_plot.svelte";
 
-  let date: string;
-  let mother_circumference_in_cm = 0;
-  let father_circumference_in_cm = 0;
-  let child_head_circumference_in_cm = 0;
-  let child_age_in_months = 0;
-  let premature_conception_in_days = 0;
-  let premature_conception_in_weeks = 0;
-  let selected_gender = "";
+  let date: string = $state("");
+  let mother_circumference_in_cm = $state(0);
+  let father_circumference_in_cm = $state(0);
+  let child_head_circumference_in_cm = $state(0);
+  let child_age_in_months = $state(0);
+  let premature_conception_in_days = $state(0);
+  let premature_conception_in_weeks = $state(0);
+  let selected_gender: string = $state("");
 
-  let error_selected_gender = false;
-  let error_child_age_in_months = false;
-  let error_child_head_circumference_in_cm = false;
-  let error_mother_circumference_in_cm = false;
-  let error_father_circumference_in_cm = false;
-  let error_premature_conception_in_days = false;
-  let error_premature_conception_in_weeks = false;
+  let error_selected_gender = $state(false);
+  let error_child_age_in_months = $state(false);
+  let error_child_head_circumference_in_cm = $state(false);
+  let error_mother_circumference_in_cm = $state(false);
+  let error_father_circumference_in_cm = $state(false);
+  let error_premature_conception_in_days = $state(false);
+  let error_premature_conception_in_weeks = $state(false);
 
-  let error = "";
+  let error = $state("");
 
-  let show_scores = false;
-  let show_corrected_scores = false;
-  let child_score = 0;
-  let corrected_child_score = 0;
-  let mother_score = 0;
-  let father_score = 0;
+  let show_scores = $state(false);
+  let show_corrected_scores = $state(false);
+  let child_score = $state(0);
+  let corrected_child_score = $state(0);
+  let mother_score = $state(0);
+  let father_score = $state(0);
 
-  $: gender_id = selected_gender == "male" ? 0 : 1
-
-	$: outerWidth = 0
-	$: innerWidth = 0
-	$: outerHeight = 0
-	$: innerHeight = 0
+  let innerWidth = $state(0);
+  let innerHeight = $state(0);
 
   function process_form() {
-    console.log("Processing form");
-    let error = false;
-    if (selected_gender.length == 0) {
+    // Clear previous errors
+    error_selected_gender = false;
+    error_child_age_in_months = false;
+    error_child_head_circumference_in_cm = false;
+    error_mother_circumference_in_cm = false;
+    error_father_circumference_in_cm = false;
+    error_premature_conception_in_days = false;
+    error_premature_conception_in_weeks = false;
+    error = "";
+
+    let has_error = false;
+    if (selected_gender.length === 0) {
       error_selected_gender = true;
-      error = true;
+      has_error = true;
     }
 
-    if (child_age_in_months <= 0) {
+    if (child_age_in_months <= 0 || child_age_in_months > 216) {
       error_child_age_in_months = true;
-      error = true;
+      has_error = true;
     }
-      
-    if (child_head_circumference_in_cm <= 0) {
+
+    if (child_head_circumference_in_cm <= 0 || child_head_circumference_in_cm > 70) {
       error_child_head_circumference_in_cm = true;
-      error = true;
+      has_error = true;
     }
 
-    if (mother_circumference_in_cm <= 0) {
+    if (mother_circumference_in_cm <= 0 || mother_circumference_in_cm > 70) {
       error_mother_circumference_in_cm = true;
-      error = true;
+      has_error = true;
     }
 
-    if (father_circumference_in_cm <= 0) {
+    if (father_circumference_in_cm <= 0 || father_circumference_in_cm > 70) {
       error_father_circumference_in_cm = true;
-      error = true;
+      has_error = true;
     }
 
     if (premature_conception_in_days > 7 || premature_conception_in_days < 0) {
       error_premature_conception_in_days = true;
-      error = true;
+      has_error = true;
     }
 
-    if (premature_conception_in_weeks > 52 || premature_conception_in_weeks < 0) {
+    if (premature_conception_in_weeks > 42 || premature_conception_in_weeks < 0) {
       error_premature_conception_in_weeks = true;
-      error = true;
+      has_error = true;
     }
 
-    if (error) {
+    if (has_error) {
       return;
     }
 
-
-    let gender_id = selected_gender == "male" ? 0 : 1;
-
-    console.log("Processing form");
-
-    invoke("calculate_scores", {
+    invokeCalculateScores({
       childAgeMonths: child_age_in_months,
       childHeadCircumferenceCm: child_head_circumference_in_cm,
       motherCircumferenceCm: mother_circumference_in_cm,
       fatherCircumferenceCm: father_circumference_in_cm,
       prematureConceptionWeeks: premature_conception_in_weeks,
       prematureConceptionDays: premature_conception_in_days,
-      gender: gender_id}
-    ).then((res: any) => {
+      gender: selected_gender,
+    }).then((res) => {
       show_scores = true;
       show_corrected_scores =
         premature_conception_in_days > 0 || premature_conception_in_weeks > 0;
@@ -99,24 +99,16 @@
       mother_score = res[1];
       child_score = res[2];
       corrected_child_score = res[3];
+    }).catch((err: any) => {
+      error = `Calculation failed: ${err}`;
+      console.error("invoke error:", err);
     });
-
-  }
-
-  const dateOnlyRegex = /^([0-9]([0-9]([0-9][1-9]|[1-9]0)|[1-9]00)|[1-9]000)(-(0[1-9]|1[0-2])(-(0[1-9]|[1-2][0-9]|3[0-1])))$/
-
-  function parseDateString(dateString: string) {
-    if (dateOnlyRegex.test(dateString)) {
-      const utcDate = new Date(dateString)
-      const localDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000)
-      return localDate  
-    }
-    return new Date(dateString)
   }
 
   function update_child_age_in_months() {
-    const child_dob = parseDateString(date);
-    const today = new Date(new Date().toISOString());
+    if (!date) return;
+    const child_dob = new Date(date + "T00:00:00");
+    const today = new Date();
     let months = (today.getFullYear() - child_dob.getFullYear()) * 12 + (today.getMonth() - child_dob.getMonth());
     if (today.getDate() - child_dob.getDate() < 0) {
       months -= 1;
@@ -129,6 +121,12 @@
     show_corrected_scores = false;
     selected_gender = "";
     error_selected_gender = false;
+    error_child_age_in_months = false;
+    error_child_head_circumference_in_cm = false;
+    error_mother_circumference_in_cm = false;
+    error_father_circumference_in_cm = false;
+    error_premature_conception_in_days = false;
+    error_premature_conception_in_weeks = false;
     error = "";
     child_age_in_months = 0;
     child_head_circumference_in_cm = 0;
@@ -136,11 +134,16 @@
     father_circumference_in_cm = 0;
     premature_conception_in_weeks = 0;
     premature_conception_in_days = 0;
+    date = "";
   }
-
 </script>
-<svelte:window bind:innerWidth bind:outerWidth bind:innerHeight bind:outerHeight />
+<svelte:window bind:innerWidth bind:innerHeight />
 <div class="flex flex-col justify-center">
+  {#if error}
+    <div class="alert alert-error place-self-center w-5/6 mt-3">
+      <span>{error}</span>
+    </div>
+  {/if}
   <div class="card bg-neutral text-neutral-content place-self-center w-5/6 mt-3">
     <div class="card-body items-center text-center">
       <h2 class="card-title">Weaver Curve</h2>
@@ -168,7 +171,7 @@
           <div class="label">
             <span class="label-text">Child DOB</span>
           </div>
-          <input type="date" class="input input-bordered {error_child_age_in_months ? 'input-error' : ''}" bind:value={date} on:input={update_child_age_in_months}/>
+          <input type="date" class="input input-bordered {error_child_age_in_months ? 'input-error' : ''}" bind:value={date} oninput={update_child_age_in_months}/>
           {#if error_child_age_in_months}
             <div class="label">
               <span class="label-text-alt text-error">Please enter a valid date</span>
@@ -195,7 +198,7 @@
       <div class="divider">Head Circumference</div>
 
       <div class="flex flex-row w-full justify-center">
-      
+
         <label class="form-control w-1/4 max-w-xs">
           <div class="label">
             <span class="label-text">Child</span>
@@ -268,12 +271,12 @@
         </div>
       </div>
 
-      <button class="btn btn-primary mt-4" on:click={process_form}>Submit</button> <button class="btn btn-secondary mt-4" on:click={reset_form}>Reset</button>
-        
+      <button class="btn btn-primary mt-4" onclick={process_form}>Submit</button> <button class="btn btn-secondary mt-4" onclick={reset_form}>Reset</button>
+
     </div>
   </div>
 
 
-  <ScoreCard  show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} child_age_in_months={child_age_in_months} gestiational_age_in_weeks={premature_conception_in_weeks}/>
-  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} chartWidth={innerWidth * 0.8 } chartHeight={innerWidth * 0.8 * 0.78} child_age_in_months={child_age_in_months} premature_conception_in_weeks={premature_conception_in_weeks} premature_conception_in_days={premature_conception_in_days} gender={gender_id} mother_circumference_in_cm={mother_circumference_in_cm} father_circumference_in_cm={father_circumference_in_cm} child_head_circumference_in_cm={child_head_circumference_in_cm} child_dob={date}/>
+  <ScoreCard  show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} child_age_in_months={child_age_in_months} gestational_age_in_weeks={premature_conception_in_weeks}/>
+  <WeaverPlot show_score={show_scores} show_corrected_score={show_corrected_scores} child_score={child_score} correct_score={corrected_child_score} mother_score={mother_score} father_score={father_score} chartWidth={innerWidth * 0.8 } chartHeight={innerWidth * 0.8 * 0.78} child_age_in_months={child_age_in_months} premature_conception_in_weeks={premature_conception_in_weeks} premature_conception_in_days={premature_conception_in_days} gender={selected_gender} mother_circumference_in_cm={mother_circumference_in_cm} father_circumference_in_cm={father_circumference_in_cm} child_head_circumference_in_cm={child_head_circumference_in_cm} child_dob={date}/>
 </div>
