@@ -2,7 +2,10 @@ import '@testing-library/jest-dom/vitest';
 import { vi } from 'vitest';
 
 // Mock Tauri API since tests run in Node.js environment
-(globalThis as any).window = Object.assign((globalThis as any).window || {}, {
+if (typeof globalThis.window === 'undefined') {
+  (globalThis as any).window = {};
+}
+Object.assign(globalThis.window, {
   __TAURI_INTERNALS__: {},
 });
 
@@ -17,4 +20,8 @@ vi.mock('@tauri-apps/api/app', () => ({
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   save: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/plugin-fs', () => ({
+  writeFile: vi.fn(),
 }));
