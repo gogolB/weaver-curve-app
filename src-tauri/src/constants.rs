@@ -1,12 +1,3 @@
-/// Regression intercept for the Weaver curve parental-average-to-child-score model
-pub const INTERCEPT: f64 = 0.138891;
-
-/// Regression slope for the Weaver curve parental-average-to-child-score model
-pub const SLOPE: f64 = 0.483034;
-
-/// Standard deviation threshold — scores outside ±SD_THRESHOLD from expected are abnormal
-pub const SD_THRESHOLD: f64 = 2.0;
-
 /// Maximum supported child age in months (18 years)
 pub const MAX_AGE_MONTHS: u32 = 216;
 
