@@ -43,7 +43,7 @@ test.describe('Weaver Curve App', () => {
 
         // Verify SVG chart rendered
         await expect(page.locator('svg')).toBeVisible();
-        await expect(page.locator('svg circle')).toBeVisible();
+        await expect(page.locator('svg circle').first()).toBeVisible();
     });
 
     test('reset clears form and hides scores', async ({ page }) => {
