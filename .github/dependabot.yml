@@ -22,11 +22,16 @@ updates:
         patterns:
           - "@tauri-apps/*"
       # Everything else (runtime + dev dependencies) in one PR.
+      # Majors are excluded so breaking upgrades (e.g. Tailwind 3→4)
+      # arrive as individual PRs that can be migrated deliberately.
       frontend:
         patterns:
           - "*"
         exclude-patterns:
           - "@tauri-apps/*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # Backend (cargo) — Tauri core, plugins, serde, etc.
   - package-ecosystem: "cargo"
@@ -42,12 +47,17 @@ updates:
         patterns:
           - "tauri"
           - "tauri-*"
+      # Majors arrive individually (see frontend group note) — the interp
+      # 1→2 breaking bump is the kind of change to review on its own.
       rust:
         patterns:
           - "*"
         exclude-patterns:
           - "tauri"
           - "tauri-*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # GitHub Actions used in .github/workflows/
   - package-ecosystem: "github-actions"
