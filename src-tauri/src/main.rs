@@ -83,8 +83,20 @@ fn get_head_circumference_data(child_age_months: f32, gender: &Gender) -> (f64, 
         Gender::Female => (FEMALE_HEAD_CIRCUMFERENCE, FEMALE_HEAD_STD),
     };
 
-    let head_circumference = interp::interp(AGE_MONTHS, circumference_table, child_age_months as f64);
-    let head_std = interp::interp(AGE_MONTHS, std_table, child_age_months as f64);
+    // InterpMode::Extrapolate preserves the interp 1.x behavior: corrected ages can
+    // fall outside the table range, where 1.x linearly extended the edge segment.
+    let head_circumference = interp::interp(
+        AGE_MONTHS,
+        circumference_table,
+        child_age_months as f64,
+        &interp::InterpMode::Extrapolate,
+    );
+    let head_std = interp::interp(
+        AGE_MONTHS,
+        std_table,
+        child_age_months as f64,
+        &interp::InterpMode::Extrapolate,
+    );
 
     (head_circumference, head_std)
 }
@@ -196,6 +208,16 @@ mod tests {
     fn test_get_head_circumference_data_edge_age_zero() {
         let (hc, _) = get_head_circumference_data(0.0, &Gender::Male);
         assert!((hc - 34.74).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_get_head_circumference_data_extrapolates_below_range() {
+        // Gestational-age correction can produce negative corrected ages. interp 1.x
+        // linearly extended the first table segment; InterpMode::Extrapolate must keep
+        // doing so. First male segment slope: (37.30 - 34.74) / 1 month = 2.56 cm/month
+        // → at -1 month: 34.74 - 2.56 = 32.18 cm.
+        let (hc, _) = get_head_circumference_data(-1.0, &Gender::Male);
+        assert!((hc - 32.18).abs() < 1e-6, "hc {hc}");
     }
 
     #[test]
