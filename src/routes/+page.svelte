@@ -1,5 +1,6 @@
 <script lang="ts">
   import { invokeCalculateScores } from "$lib/api";
+  import { calculateAgeInMonths } from "$lib/age";
   import ScoreCard from "../components/score_card.svelte";
   import WeaverPlot from "../components/weaver_plot.svelte";
 
@@ -107,13 +108,7 @@
 
   function update_child_age_in_months() {
     if (!date) return;
-    const child_dob = new Date(date + "T00:00:00");
-    const today = new Date();
-    let months = (today.getFullYear() - child_dob.getFullYear()) * 12 + (today.getMonth() - child_dob.getMonth());
-    if (today.getDate() - child_dob.getDate() < 0) {
-      months -= 1;
-    }
-    child_age_in_months = months;
+    child_age_in_months = calculateAgeInMonths(date);
   }
 
   function reset_form() {

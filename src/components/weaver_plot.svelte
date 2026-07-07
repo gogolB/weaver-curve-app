@@ -6,6 +6,7 @@
     import { writeFile } from '@tauri-apps/plugin-fs';
     import { getVersion } from '@tauri-apps/api/app';
     import { INTERCEPT, SLOPE, SD_THRESHOLD } from '$lib/constants';
+    import { isWithinExpectedRange } from '$lib/weaver';
     import { generatePdf } from '$lib/pdf-export';
 
     let {
@@ -59,9 +60,8 @@
     let yScale = $derived(scaleLinear().domain([5, -5]).range([paddings.top, chartHeight - paddings.bottom]));
 
     let parental_average = $derived((mother_score + father_score) / 2);
-    let y_mean = $derived(INTERCEPT + SLOPE * parental_average);
-    let is_abnormal = $derived(child_score > y_mean + SD_THRESHOLD || child_score < y_mean - SD_THRESHOLD);
-    let is_abnormal_corrected = $derived(correct_score > y_mean + SD_THRESHOLD || correct_score < y_mean - SD_THRESHOLD);
+    let is_abnormal = $derived(!isWithinExpectedRange(child_score, parental_average));
+    let is_abnormal_corrected = $derived(!isWithinExpectedRange(correct_score, parental_average));
 
     $effect(() => {
         if (gy) select(gy).call(axisLeft(yScale));

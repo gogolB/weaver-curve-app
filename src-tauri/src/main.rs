@@ -220,4 +220,89 @@ mod tests {
         let female: Gender = serde_json::from_str("\"female\"").unwrap();
         assert!(matches!(female, Gender::Female));
     }
+
+    // --- Golden-value tests: exact expected z-scores, hand-computed from the
+    // --- lookup tables in constants.rs. These pin the clinical math down so a
+    // --- table edit, formula change, or interpolation regression fails loudly.
+
+    #[test]
+    fn test_golden_male_12_months_at_table_point() {
+        // Age 12 is a table knot: mean 47.00, std 1.31 — a 47.0 cm child is exactly the mean.
+        let (dad_score, mom_score, child_score, corrected) =
+            calculate_scores(12, 47.0, 54.0, 56.0, 0, 0, Gender::Male).unwrap();
+
+        assert!(child_score.abs() < 1e-9, "child at table mean must be 0, got {child_score}");
+        assert_eq!(child_score, corrected, "no prematurity → corrected equals raw");
+        // dad: (56.0 - 55.95) / 1.34
+        assert!((dad_score - 0.037_313_4).abs() < 1e-6, "dad_score {dad_score}");
+        // mom: (54.0 - 54.94) / 1.40
+        assert!((mom_score - (-0.671_428_6)).abs() < 1e-6, "mom_score {mom_score}");
+    }
+
+    #[test]
+    fn test_golden_female_9_months_at_table_point() {
+        // Age 9 knot (female): mean 44.69, std 1.30 → (46.0 - 44.69) / 1.30
+        let (_, _, child_score, _) =
+            calculate_scores(9, 46.0, 54.94, 55.95, 0, 0, Gender::Female).unwrap();
+        assert!((child_score - 1.007_692_3).abs() < 1e-6, "child_score {child_score}");
+    }
+
+    #[test]
+    fn test_golden_male_15_months_interpolated() {
+        // Age 15 is midway between knots 12 (47.00, 1.31) and 18 (48.31, 1.36):
+        // mean 47.655, std 1.335 → (48.0 - 47.655) / 1.335
+        let (_, _, child_score, _) =
+            calculate_scores(15, 48.0, 54.0, 56.0, 0, 0, Gender::Male).unwrap();
+        assert!((child_score - 0.258_427_0).abs() < 1e-6, "child_score {child_score}");
+    }
+
+    #[test]
+    fn test_golden_corrected_age_32_weeks() {
+        // 12 - (40 - 32) / 4.345 = 10.158804 (must match correctedAgeMonths in src/lib/age.ts)
+        let corrected_age = get_corrected_age(12, 32, 0);
+        assert!((corrected_age - 10.158_804).abs() < 1e-4, "corrected_age {corrected_age}");
+    }
+
+    #[test]
+    fn test_golden_corrected_age_32_weeks_3_days() {
+        // gest = 32 + 3/7; 12 - (40 - gest) / 4.345 = 10.257444
+        let corrected_age = get_corrected_age(12, 32, 3);
+        assert!((corrected_age - 10.257_444).abs() < 1e-4, "corrected_age {corrected_age}");
+    }
+
+    #[test]
+    fn test_golden_corrected_score_premature_32_weeks() {
+        // Corrected age 10.158804 interpolates between knots 9 (45.75, 1.28) and
+        // 12 (47.00, 1.31): mean 46.232835, std 1.291588 → (47.0 - mean) / std
+        let (_, _, child_score, corrected) =
+            calculate_scores(12, 47.0, 54.0, 56.0, 32, 0, Gender::Male).unwrap();
+        assert!(child_score.abs() < 1e-9, "raw score still judged at chronological age");
+        assert!((corrected - 0.593_97).abs() < 1e-3, "corrected {corrected}");
+    }
+
+    // --- Validation branches not covered above ---
+
+    #[test]
+    fn test_validation_mother_circumference_invalid() {
+        for bad in [0.0, -1.0, 75.0] {
+            let err = calculate_scores(12, 47.0, bad, 56.0, 0, 0, Gender::Male).unwrap_err();
+            assert!(err.to_string().contains("Mother"), "unexpected error: {err}");
+        }
+    }
+
+    #[test]
+    fn test_validation_father_circumference_invalid() {
+        for bad in [0.0, -1.0, 75.0] {
+            let err = calculate_scores(12, 47.0, 54.0, bad, 0, 0, Gender::Male).unwrap_err();
+            assert!(err.to_string().contains("Father"), "unexpected error: {err}");
+        }
+    }
+
+    #[test]
+    fn test_validation_age_boundary_is_inclusive() {
+        // 216 months (18 years) is the last table knot and must be accepted...
+        assert!(calculate_scores(216, 55.0, 54.0, 56.0, 0, 0, Gender::Male).is_ok());
+        // ...while 217 is rejected.
+        assert!(calculate_scores(217, 55.0, 54.0, 56.0, 0, 0, Gender::Male).is_err());
+    }
 }

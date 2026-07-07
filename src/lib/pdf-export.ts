@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
-import { INTERCEPT, SLOPE, SD_THRESHOLD } from './constants';
+import { correctedAgeMonths } from './age';
+import { buildClinicalInterpretation } from './weaver';
 
 export interface PdfExportOptions {
     svgData: string;
@@ -101,8 +102,11 @@ export async function generatePdf(opts: PdfExportOptions): Promise<Uint8Array> {
     ];
     if (opts.prematureConceptionWeeks > 0 || opts.prematureConceptionDays > 0) {
         demoLines.push(`Premature Conception: ${opts.prematureConceptionWeeks} weeks, ${opts.prematureConceptionDays} days`);
-        const gestAge = opts.prematureConceptionWeeks + opts.prematureConceptionDays / 7;
-        const correctedAge = opts.childAgeMonths - (40 - gestAge) / 4.345;
+        const correctedAge = correctedAgeMonths(
+            opts.childAgeMonths,
+            opts.prematureConceptionWeeks,
+            opts.prematureConceptionDays,
+        );
         demoLines.push(`Corrected Age: ${correctedAge.toFixed(1)} months`);
     }
     for (const line of demoLines) {
@@ -134,7 +138,14 @@ export async function generatePdf(opts: PdfExportOptions): Promise<Uint8Array> {
     doc.line(margin, y, pageWidth - margin, y);
     y += 3;
 
-    const parentalAverage = (opts.motherScore + opts.fatherScore) / 2;
+    const interpretation = buildClinicalInterpretation({
+        childScore: opts.childScore,
+        correctedChildScore: opts.correctedChildScore,
+        motherScore: opts.motherScore,
+        fatherScore: opts.fatherScore,
+        showCorrectedScore: opts.showCorrectedScore,
+    });
+    const parentalAverage = interpretation.parentalAverage;
     const tableData: [string, string][] = [
         ['Child Score', opts.childScore.toFixed(2)],
     ];
@@ -233,16 +244,7 @@ export async function generatePdf(opts: PdfExportOptions): Promise<Uint8Array> {
     doc.setFontSize(10);
     doc.setTextColor(40);
 
-    const expectedScore = INTERCEPT + SLOPE * parentalAverage;
-    const scoreToCheck = opts.showCorrectedScore ? opts.correctedChildScore : opts.childScore;
-    const scoreLabel = opts.showCorrectedScore ? "corrected " : "";
-    const withinRange = scoreToCheck <= expectedScore + SD_THRESHOLD && scoreToCheck >= expectedScore - SD_THRESHOLD;
-
-    const interpretation = withinRange
-        ? `The child's ${scoreLabel}head circumference z-score (${scoreToCheck.toFixed(2)}) falls within the expected range (\u00B1${SD_THRESHOLD} SD) relative to the parental average (${parentalAverage.toFixed(2)}).`
-        : `The child's ${scoreLabel}head circumference z-score (${scoreToCheck.toFixed(2)}) falls outside the expected range (\u00B1${SD_THRESHOLD} SD) relative to the parental average (${parentalAverage.toFixed(2)}). Further clinical evaluation may be warranted.`;
-
-    const splitInterpretation = doc.splitTextToSize(interpretation, pageWidth - 2 * margin);
+    const splitInterpretation = doc.splitTextToSize(interpretation.text, pageWidth - 2 * margin);
     doc.text(splitInterpretation, margin, y);
     y += splitInterpretation.length * 5 + 5;
 

@@ -1,3 +1,5 @@
+import { correctedAgeMonths } from './age';
+
 const isMocked = typeof import.meta !== 'undefined' && import.meta.env?.VITE_MOCK_TAURI === 'true';
 
 // Mock implementation of calculate_scores (matches Rust logic approximately)
@@ -19,11 +21,11 @@ function mockCalculateScores(args: {
     const childMean = args.gender === 'male' ? 47.0 : 45.81;
     const childStd = 1.31;
 
-    let correctedAge = args.childAgeMonths;
-    if (args.prematureConceptionWeeks > 0 || args.prematureConceptionDays > 0) {
-        const gestAge = args.prematureConceptionWeeks + args.prematureConceptionDays / 7;
-        correctedAge = args.childAgeMonths - (40 - gestAge) / 4.345;
-    }
+    const correctedAge = correctedAgeMonths(
+        args.childAgeMonths,
+        args.prematureConceptionWeeks,
+        args.prematureConceptionDays,
+    );
 
     const childScore = (args.childHeadCircumferenceCm - childMean) / childStd;
     const correctedChildScore = correctedAge !== args.childAgeMonths
