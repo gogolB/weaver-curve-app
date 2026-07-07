@@ -1,0 +1,63 @@
+# Dependabot configuration
+# Docs: https://docs.github.com/en/code-security/dependabot/working-with-dependabot/dependabot-options-reference
+#
+# All ecosystems run weekly on Monday so related PRs (e.g. Tauri npm packages
+# and their matching Rust crates) arrive together. Updates are grouped so you
+# get at most a handful of PRs per week instead of one per dependency.
+
+version: 2
+updates:
+  # Frontend (npm) — SvelteKit, Vite, Tailwind, test tooling
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Tauri npm packages must stay in sync with the Rust crates in
+      # src-tauri/Cargo.toml — review alongside the matching cargo "tauri" PR.
+      tauri:
+        patterns:
+          - "@tauri-apps/*"
+      # Everything else (runtime + dev dependencies) in one PR.
+      frontend:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@tauri-apps/*"
+
+  # Backend (cargo) — Tauri core, plugins, serde, etc.
+  - package-ecosystem: "cargo"
+    directory: "/src-tauri"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Counterpart to the npm "tauri" group above.
+      tauri:
+        patterns:
+          - "tauri"
+          - "tauri-*"
+      rust:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "tauri"
+          - "tauri-*"
+
+  # GitHub Actions used in .github/workflows/
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      actions:
+        patterns:
+          - "*"
