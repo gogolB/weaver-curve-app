@@ -38,7 +38,7 @@
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.5.2",
     "daisyui": "^4.12.24",
-    "jsdom": "^27.0.0",
+    "jsdom": "^29.1.1",
     "postcss": "^8.5.16",
     "svelte": "^5.56.4",
     "svelte-check": "^4.7.2",
